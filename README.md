@@ -21,3 +21,8 @@ The `service.provisioning.controller` service provides a standard REST API which
 
 Internally the creation, updating or deleting of an environment will be done with tools
 like [Terraform](https://www.terraform.io/).
+
+## Architecture / Design
+
+The [architecture](./architecture.md) document contains some of the design decisions made for this
+project.
