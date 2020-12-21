@@ -14,6 +14,9 @@ Bootstrapping will be important. How are we going to do that?
 * Bootstrapping can be a command with some options that determine the location
   where the local container is deployed to using a terraform script of some kind
   to generate the initial resources
+* Deploy to a k8s cluster somewhere. From there we can have all the actual services.
+  * Need some way to record what is being created and store that in the database
+  * Also need some way to migrate data from one database to another
 
 ## Location
 
@@ -82,6 +85,11 @@ Demands
 * Use events to communicate with other services
   * How are we going to report progress etc.
 
+Potentially looking at using [arangodb]() because
+* OSS available
+* Multi-node available in OSS
+* Multiple database types
+* Has some form of security (LDAP isn't available in OSS, but there's a simple basic auth)
 
 
 Also need
