@@ -17,6 +17,22 @@ Bootstrapping will be important. How are we going to do that?
 * Deploy to a k8s cluster somewhere. From there we can have all the actual services.
   * Need some way to record what is being created and store that in the database
   * Also need some way to migrate data from one database to another
+* Bootstrap should work just from a repo, i.e. all you have done is `git clone`
+  so the bootstrap script should be able to
+  * Build the application, possibly into a docker container
+  * Run the code(?)
+  * Deploy the base infrastructure
+    * k8s cluster(?)
+    * Consul masters
+    * storage
+    * event system
+    * api front-end
+    * Service
+  * Send data describing the environment that was just created
+  * send commands to create the other environments that should be created(?)
+* What do we do if there is no k8s cluster
+  * microk8s
+  * Azure k8s
 
 ## Location
 
