@@ -24,6 +24,7 @@ Bootstrapping will be important. How are we going to do that?
   * Deploy the base infrastructure
     * k8s cluster(?)
     * Consul masters
+    * observability
     * storage
     * event system
     * api front-end
@@ -50,6 +51,12 @@ Bootstrapping will be important. How are we going to do that?
   * Might add others later on
 * Service will send notifications back to the event bus when it has done work,
   e.g. created a new environment
+* Any API calls will need to be resilient
+  * https://github.com/cep21/circuit
+  * https://dev.to/trongdan_tran/circuit-breaker-and-retry-2klg
+  * https://callistaenterprise.se/blogg/teknik/2017/09/11/go-blog-series-part11/
+  * https://github.com/eapache/go-resiliency
+  * https://medium.com/@slok/goresilience-a-go-library-to-improve-applications-resiliency-14d229aee385
 
 ### REST API Versioning
 
@@ -63,6 +70,10 @@ Bootstrapping will be important. How are we going to do that?
 * Using RabbitMQ / AMQP
 
 ### Security
+
+* Service to service security
+* Authentication with the event system. Ideally done through Vault
+* Authentication with Vault
 
 ## Storage
 
@@ -121,4 +132,113 @@ Options
   * ArangoDB <-- probably the most suitable because GraphQL and distributed by defaul
   * OrientDB
 
+## Service discovery
+
+* Might be tricky or not always necessary because we're using event systems
+* In general discovery is done with Consul
+  * https://alex.dzyoba.com/blog/go-consul-service/
+  * https://github.com/segmentio/consul-go
+* Want to be using a service mesh
+
 ## Calling out to services
+
+## Testing
+
+* API testing
+* Integration testing
+
+### API testing
+
+* https://www.sisense.com/blog/rest-api-testing-strategy-what-exactly-should-you-test/
+
+## Templates
+
+* Describes an environment
+* Describes all actions for an environment
+* Permissions?
+
+## Observability
+
+* Logs
+* Metrics
+* Tracing
+  * Done via service mesh? -> Note that won't work with service bus messages so the service might
+    still have to sort something out
+* Audit logging
+
+## Resilience
+
+* Retries / backoff on all calls
+*
+
+## Elements
+
+### Environment
+
+An environment consists of
+
+* ID
+* Meta
+  * Name
+  * Description
+  * Tags
+  * Date of creation
+  * Date of destruction
+  * Date of planned destruction
+* Templates -> Link to templates that create it
+* Resources -> Link to resources
+
+Other information that can be obtained for an environment
+
+* Status
+  * Deploying
+  * Deployed - Waiting / validating
+  * Deployed - OK
+  * Deployed - Fail
+  * Destroying
+  * Destroyed
+
+### Resource
+
+A resource contains
+
+* ID
+* Link to the template that created it
+* Count
+* Status
+* Links
+
+### Template
+
+A template contains
+
+* ID
+* Version
+* Name
+* Commit
+* Dependency graph
+* Resource groups
+* Resources
+* Tags
+* Actions
+  * App reference
+    * URL
+    * Name
+    * Command to execute
+
+
+### Resource group
+
+* ID
+* Resource link
+  * ID
+  * Template that makes it
+* Dependency graph
+* Name
+* Tags
+
+### Possible executors
+
+* Terraform
+* Consul KV
+* Vault secrets
