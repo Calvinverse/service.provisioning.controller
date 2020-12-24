@@ -21,7 +21,7 @@ Bootstrapping will be important. How are we going to do that?
   so the bootstrap script should be able to
   * Build the application, possibly into a docker container
   * Run the code(?)
-  * Deploy the base infrastructure
+  * Deploy the base infrastructure -> Meta environment
     * k8s cluster(?)
     * Consul masters
     * observability
@@ -242,3 +242,32 @@ A template contains
 * Terraform
 * Consul KV
 * Vault secrets
+
+## Commands
+
+
+* `server` - Runs the application as a service
+  * Modes:
+    * primary - Indicates that the current instance belongs to the primary cluster, i.e. the active cluster
+    * secondary - Indicates that the current instance belongs to the secondary cluster, i.e. the cluster
+      that is the disaster recovery (DR) cluster for the primary cluster.
+  * Parameters
+    * `primary` - Flag indicating if the application belongs to the primary cluster. If so then it will
+      assume it is part of the active cluster. If not then it assumes it is part of the disaster recovery
+      (DR) cluster. The primary cluster will send signals to the DR cluster(s)
+    * `primary-cluster-name` - The Consul name of the primary cluster. It is assumed that there exists
+      a WAN connection between the two Consul clusters.
+* `bootstrap` - Starts the application in bootstrap mode
+  * Starts the application in bootstrap mode. This will create a new cluster in the selected k8s
+    instance and fully initialize it, i.e. service discovery, secrets, certificates etc. Once the
+    cluster is up and running the resource information for the cluster will be send with the
+  * Parameters
+    * `location` - Address of the k8s cluster into which the meta environment should be bootstrapped
+    * `github-organisation` - The name of the organisation or person who's github account contains the
+      repositories containing the configuration files to create the meta cluster
+    * `repository-prefix` - The prefix for the repositories containing the configuration files to
+      create the meta cluster
+
+Default parameters
+
+* `config` - The file path to the configuration file
