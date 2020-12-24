@@ -20,7 +20,7 @@ var (
 	resolver service.Resolver
 
 	rootCmd = &cobra.Command{
-		Use:     "server",
+		Use:     "controller",
 		Version: info.Version(),
 	}
 )
