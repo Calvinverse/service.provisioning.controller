@@ -13,8 +13,8 @@ import (
 	"github.com/calvinverse/service.provisioning.controller/internal/router"
 )
 
-// ServerCommandBuilder creates new Cobra Commands for the server capability.
-type ServerCommandBuilder interface {
+// ServeCommandBuilder creates new Cobra Commands for the running the serve capability.
+type ServeCommandBuilder interface {
 	New() *cobra.Command
 }
 
@@ -60,20 +60,20 @@ type ServerCommandBuilder interface {
 // @authorizationUrl https://example.com/oauth/authorize
 // @scope.admin Grants read and write access to administrative information
 //
-// NewCommandBuilder creates a new instance of the ServerCommandBuilder interface.
-func NewCommandBuilder(config config.Configuration, builder router.Builder) ServerCommandBuilder {
-	return &serverCommandBuilder{
+// NewServeCommandBuilder creates a new instance of the ServeCommandBuilder interface.
+func NewServeCommandBuilder(config config.Configuration, builder router.Builder) ServeCommandBuilder {
+	return &serveCommandBuilder{
 		cfg:     config,
 		builder: builder,
 	}
 }
 
-type serverCommandBuilder struct {
+type serveCommandBuilder struct {
 	cfg     config.Configuration
 	builder router.Builder
 }
 
-func (s serverCommandBuilder) New() *cobra.Command {
+func (s serveCommandBuilder) New() *cobra.Command {
 	return &cobra.Command{
 		Use:   "server",
 		Short: "Runs the application as a server",
@@ -82,7 +82,7 @@ func (s serverCommandBuilder) New() *cobra.Command {
 	}
 }
 
-func (s serverCommandBuilder) executeServer(cmd *cobra.Command, args []string) error {
+func (s ServeCommandBuilder) executeServer(cmd *cobra.Command, args []string) error {
 	router := s.builder.New()
 
 	walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {

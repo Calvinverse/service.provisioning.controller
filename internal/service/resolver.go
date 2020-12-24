@@ -40,10 +40,10 @@ func (r *resolver) resolveAPIRouters() []router.APIRouter {
 
 func (r *resolver) ResolveCommands() []*cobra.Command {
 	routerBuilder := r.resolveRouterBuilder()
-	serverCommandBuilder := cmd.NewCommandBuilder(r.cfg, routerBuilder)
+	ServeCommandBuilder := cmd.NewServeCommandBuilder(r.cfg, routerBuilder)
 	if r.commands == nil {
 		r.commands = []*cobra.Command{
-			serverCommandBuilder.New(),
+			ServeCommandBuilder.New(),
 		}
 	}
 
