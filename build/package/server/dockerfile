@@ -20,7 +20,7 @@ COPY cmd/ ./cmd
 RUN go mod download
 
 RUN go get github.com/swaggo/swag/cmd/swag && \
-  swag init --parseInternal --output ./api --generalInfo ./internal/cmd/server.go
+  swag init --parseInternal --output ./api --generalInfo ./internal/cmd/serve.go
 
 RUN CGO_ENABLED=0\
   GOOS=linux\
@@ -29,7 +29,7 @@ RUN CGO_ENABLED=0\
   -installsuffix cgo\
   -v\
   -ldflags="-X github.com/calvinverse/service.provisioning.controller/internal/info.sha1=${REVISION} -X github.com/calvinverse/service.provisioning.controller/internal/info.buildTime=${NOW} -X github.com/calvinverse/service.provisioning.controller/internal/info.version=${VERSION}"\
-  -o server\
+  -o controller\
   ./cmd
 
 # Run tests
@@ -56,16 +56,14 @@ RUN addgroup provisioning && adduser provisioning --system --ingroup provisionin
 
 RUN mkdir -p /etc/provisioning && chown -R provisioning:provisioning /etc/provisioning && \
   mkdir -p /etc/provisioning/conf.d && chown -R provisioning:provisioning /etc/provisioning/conf.d && \
-  mkdir -p /etc/provisioning/doc && chown -R provisioning:provisioning /etc/provisioning/doc &&
+  mkdir -p /etc/provisioning/doc && chown -R provisioning:provisioning /etc/provisioning/doc
 
-COPY --from=build-go /app/server /usr/bin
-RUN /usr/bin/server
+COPY --from=build-go /app/controller /usr/bin
+RUN /usr/bin/controller
 
 COPY --from=build-go /app/configs/config.yaml /etc/provisioning/conf.d
 
 COPY --from=build-go /app/api/swagger.json /etc/provisioning/doc
-
-COPY --from=build-node /web/dist/ ${ui_path}
 
 COPY ./build/package/server/server.sh /etc/service/provisioning/run
 
@@ -75,7 +73,6 @@ RUN dos2unix /etc/service/provisioning/run && \
 RUN ls -la /etc/service/provisioning
 
 ENV PROVISION_SERVICE_PORT ${port}
-ENV PROVISION_UI_PATH ${ui_path}
 ENV PROVISION_CONFIG_PATH /etc/provisioning/conf.d/config.yaml
 ENV PROVISION_DOC_PATH /etc/provisioning/doc
 

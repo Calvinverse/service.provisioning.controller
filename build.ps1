@@ -49,7 +49,6 @@ function New-Container
     Write-Output "NOW = $date"
     Write-Output "REVISION = $sha1"
     Write-Output "VERSION = $version"
-    Write-Output "Tagging with: service-provisioning:$version"
 
     $command = "docker build"
     $command += " --force-rm"
@@ -60,13 +59,18 @@ function New-Container
 
     if ($dockerTags.Length -gt 0)
     {
+        Write-Output "$($dockerTags.Length)"
         foreach($tag in $dockerTags)
         {
-            $command += " --tag $($tag)/service-provisioning:$version"
+            Write-Output "Tagging with: $($tag)/service-provisioning-controller:$version"
+            $command += " --tag $($tag)/service-provisioning-controller:$version"
         }
     }
+    else
+    {
+        $command += " --tag service-provisioning-controller:$version"
+    }
 
-    $command += " --tag service-provisioning:$version"
     $command += " ."
 
     Write-Output "Invoking: $command"
@@ -91,7 +95,7 @@ function New-LocalBuild
 
     Copy-Item -Path (Join-Path $PSScriptRoot "configs" "*") -Destination $absoluteOutputDir -Force
 
-    & swag init --parseInternal --output ./api --generalInfo ./internal/cmd/server.go
+    & swag init --parseInternal --output ./api --generalInfo ./internal/cmd/serve.go
 
     $docDirectory = Join-Path $absoluteOutputDir 'api'
     if (-not (Test-Path $docDirectory))
@@ -108,7 +112,7 @@ function New-LocalBuild
     Add-Content -Path $configPath -Value 'service:'
     Add-Content -Path $configPath -Value '  port: 8080'
 
-    go build -a -installsuffix cgo -v -ldflags="-X github.com/calvinverse/service.provisioning.controller/internal/info.sha1=$sha1 -X github.com/calvinverse/service.provisioning.controller/internal/info.buildTime=$date -X github.com/calvinverse/service.provisioning.controller/internal/info.version=$version" -o $outputDir/server.exe ./cmd
+    go build -a -installsuffix cgo -v -ldflags="-X github.com/calvinverse/service.provisioning.controller/internal/info.sha1=$sha1 -X github.com/calvinverse/service.provisioning.controller/internal/info.buildTime=$date -X github.com/calvinverse/service.provisioning.controller/internal/info.version=$version" -o $outputDir/controller.exe ./cmd
 
     go test -cover ./... ./cmd
 }
@@ -130,6 +134,6 @@ if ($Direct)
 else
 {
     Write-Output "Building locally ..."
-    New-Container -date $date -sha1 $revision -version $version -dockerTags $($dockerTags.Split(','))
+    New-Container -date $date -sha1 $revision -version $version -dockerTags $($dockerTags.Split(',', [System.StringSplitOptions]::RemoveEmptyEntries))
 }
 
