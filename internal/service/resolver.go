@@ -8,7 +8,6 @@ import (
 	"github.com/calvinverse/service.provisioning.controller/internal/doc"
 	"github.com/calvinverse/service.provisioning.controller/internal/health"
 	"github.com/calvinverse/service.provisioning.controller/internal/router"
-	"github.com/calvinverse/service.provisioning.controller/internal/web"
 )
 
 // Resolver defines the interface for Inversion-of-Control objects.
@@ -55,10 +54,5 @@ func (r *resolver) ResolveCommands() []*cobra.Command {
 
 func (r *resolver) resolveRouterBuilder() router.Builder {
 	apiRouters := r.resolveAPIRouters()
-	webRouter := r.resolveWebRouter()
-	return router.NewRouterBuilder(apiRouters, webRouter)
-}
-
-func (r *resolver) resolveWebRouter() router.WebRouter {
-	return web.NewWebRouter(r.cfg)
+	return router.NewRouterBuilder(apiRouters)
 }
