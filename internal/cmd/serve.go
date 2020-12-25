@@ -82,7 +82,7 @@ func (s serveCommandBuilder) New() *cobra.Command {
 	}
 }
 
-func (s ServeCommandBuilder) executeServer(cmd *cobra.Command, args []string) error {
+func (s serveCommandBuilder) executeServer(cmd *cobra.Command, args []string) error {
 	router := s.builder.New()
 
 	walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
