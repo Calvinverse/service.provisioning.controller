@@ -8,15 +8,10 @@ There are a number of areas that decisions need to be made on for this applicati
 * Communication with other services
 * Invocation of tooling
 
-Bootstrapping will be important. How are we going to do that?
+Bootstrapping will be important.
 
-* No services will be available
-* Bootstrapping can be a command with some options that determine the location
-  where the local container is deployed to using a terraform script of some kind
-  to generate the initial resources
-* Deploy to a k8s cluster somewhere. From there we can have all the actual services.
-  * Need some way to record what is being created and store that in the database
-  * Also need some way to migrate data from one database to another
+* Done via a Terraform or Helm script to deploy all the required services
+* How are we going to deal with certificates and secrets etc.
 * Bootstrap should work just from a repo, i.e. all you have done is `git clone`
   so the bootstrap script should be able to
   * Build the application, possibly into a docker container
