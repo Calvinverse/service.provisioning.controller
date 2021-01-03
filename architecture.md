@@ -52,6 +52,8 @@ Bootstrapping will be important.
   * https://callistaenterprise.se/blogg/teknik/2017/09/11/go-blog-series-part11/
   * https://github.com/eapache/go-resiliency
   * https://medium.com/@slok/goresilience-a-go-library-to-improve-applications-resiliency-14d229aee385
+* There will be no commands or API calls to get the current state. It is expected that other
+  services will keep their own data store containing the state
 
 ### REST API Versioning
 
@@ -63,6 +65,7 @@ Bootstrapping will be important.
 ### Service bus
 
 * Using RabbitMQ / AMQP
+* Second option will be Apache Kafka
 
 ### Security
 
@@ -77,6 +80,8 @@ Demands
 * How are we going to keep the data consistent with the actual infrastructure. Infrastructure can change, either
   because somebody click-op-sed or because something failed
   * Need to somehow ‘know’ what is in an environment, what is expected and what isn’t. Can keep track of those parts.
+  * For now we assume that there is a permission control system that blocks users from doing things
+    manually
 * Storing
   * Environment
     * Resources
