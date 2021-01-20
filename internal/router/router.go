@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
-	"github.com/go-chi/render"
 	"github.com/sirupsen/logrus"
 )
 
@@ -72,14 +71,12 @@ func (rb routerBuilder) New() *chi.Mux {
 func (rb routerBuilder) newChiRouter(logger *logrus.Logger) *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(
-		render.SetContentType(render.ContentTypeJSON),
+		middleware.AllowContentType("application/json", "application/xml", "text/plain"),
 		middleware.RedirectSlashes,
 		middleware.Recoverer,
 	)
 
 	router.Use(rb.newStructuredLogger(logger))
-
-	router.Use(render.SetContentType(render.ContentTypeJSON))
 
 	// Basic CORS
 	// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
