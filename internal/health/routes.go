@@ -67,7 +67,7 @@ func NewHealthAPIRouter() router.APIRouter {
 	}
 }
 
-type healthRouter struct{
+type healthRouter struct {
 	healthService Service
 }
 
@@ -89,7 +89,7 @@ func (h *healthRouter) info(w http.ResponseWriter, r *http.Request) {
 		Version:   info.Version(),
 	}
 
-	h.responseBody(w, r, response)
+	h.responseBody(w, r, http.StatusOK, response)
 }
 
 // Liveliness godoc
@@ -107,18 +107,15 @@ func (h *healthRouter) info(w http.ResponseWriter, r *http.Request) {
 func (h *healthRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
 
-	currentStatus, err := h.healthService.Liveliness()
+	_, err := h.healthService.Liveliness()
 	if err != nil {
 		response := &LivelinessSummaryResponse{
-			Checks: ,
+			Checks: make([]string, 0),
 			Status: "",
-			Time: t,
+			Time:   t.Format("Mon Jan _2 15:04:05 2006"),
 		}
 
-		h.responseBody(w, r, response)
-
-		// RETURN NON-200 code
-
+		h.responseBody(w, r, http.StatusInternalServerError, response)
 		return
 	}
 
@@ -127,9 +124,9 @@ func (h *healthRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 	switch responseType {
 	case "detailed":
 		response := &LivelinessDetailedResponse{
-			Checks: ,
+			Checks: make([]CheckStatus, 0),
 			Status: "",
-			Time: t,
+			Time:   t.Format("Mon Jan _2 15:04:05 2006"),
 		}
 
 		h.responseBody(w, r, response)
@@ -137,11 +134,10 @@ func (h *healthRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 		fallthrough
 	default:
 
-
 		response := &LivelinessSummaryResponse{
-			Checks: ,
+			Checks: make([]string, 0),
 			Status: "",
-			Time: t,
+			Time:   t.Format("Mon Jan _2 15:04:05 2006"),
 		}
 
 		h.responseBody(w, r, response)
@@ -166,7 +162,7 @@ func (h *healthRouter) ping(w http.ResponseWriter, r *http.Request) {
 		Response: fmt.Sprint("Pong - ", t.Format("Mon Jan _2 15:04:05 2006")),
 	}
 
-	h.responseBody(w, r, response)
+	h.responseBody(w, r, http.StatusOK, response)
 }
 
 func (h *healthRouter) readiness(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +173,7 @@ func (h *healthRouter) started(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *healthRouter) responseBody(w http.ResponseWriter, r *http.Request, data interface{}) {
+func (h *healthRouter) responseBody(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
 	mediatype, _, err := mime.ParseMediaType(r.Header.Get("Accept"))
 	if err != nil {
 		log.Error(
@@ -191,8 +187,10 @@ func (h *healthRouter) responseBody(w http.ResponseWriter, r *http.Request, data
 
 	switch mediatype {
 	case "application/xml":
+		render.Status(r, status)
 		render.XML(w, r, data)
 	case "application/json":
+		render.Status(r, status)
 		render.JSON(w, r, data)
 	default:
 		log.Error(
