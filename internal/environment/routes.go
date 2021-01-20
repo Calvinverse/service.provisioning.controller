@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
+// NewEnvironmentAPIRouter returns an APIRouter instance for the environment routes.
 func NewEnvironmentAPIRouter() router.APIRouter {
 	return &environmentRouter{}
 }

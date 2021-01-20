@@ -59,7 +59,7 @@ type ServeCommandBuilder interface {
 // @tokenUrl https://example.com/oauth/token
 // @authorizationUrl https://example.com/oauth/authorize
 // @scope.admin Grants read and write access to administrative information
-//
+
 // NewServeCommandBuilder creates a new instance of the ServeCommandBuilder interface.
 func NewServeCommandBuilder(config config.Configuration, builder router.Builder) ServeCommandBuilder {
 	return &serveCommandBuilder{
