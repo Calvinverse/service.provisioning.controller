@@ -175,7 +175,7 @@ func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.R
 		result := CheckInformation{
 			Name:      check.Name,
 			Status:    statusToText(check.IsSuccess),
-			Timestamp: check.Timestamp.Format("Mon Jan _2 15:04:05 2006"),
+			Timestamp: check.Timestamp.Format(time.RFC3339),
 		}
 		checkResults = append(checkResults, result)
 	}
@@ -183,7 +183,7 @@ func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.R
 	response := &LivelinessDetailedResponse{
 		Checks: checkResults,
 		Status: statusText,
-		Time:   t.Format("Mon Jan _2 15:04:05 2006"),
+		Time:   t.Format(time.RFC3339),
 	}
 
 	h.responseBody(w, r, responseCode, response)
@@ -205,7 +205,7 @@ func (h *selfRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Re
 	response := &LivelinessSummaryResponse{
 		Checks: checkResults,
 		Status: statusText,
-		Time:   t.Format("Mon Jan _2 15:04:05 2006"),
+		Time:   t.Format(time.RFC3339),
 	}
 
 	h.responseBody(w, r, responseCode, response)
@@ -226,16 +226,36 @@ func (h *selfRouter) ping(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
 
 	response := PingResponse{
-		Response: fmt.Sprint("Pong - ", t.Format("Mon Jan _2 15:04:05 2006")),
+		Response: fmt.Sprint("Pong - ", t.Format(time.RFC3339)),
 	}
 
 	h.responseBody(w, r, http.StatusOK, response)
 }
 
+// Readiness godoc
+// @Summary Respond to an readiness request
+// @Description Respond to an readiness request with information about ability of the application to start serving requests.
+// @Tags health
+// @Accept json
+// @Accept xml
+// @Produce json
+// @Produce xml
+// @Success 200 {object} health.ReadinessResponse
+// @Router /v1/self/readiness [get]
 func (h *selfRouter) readiness(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusNotImplemented)
 }
 
+// Started godoc
+// @Summary Respond to an started request
+// @Description Respond to an started request with information indicating if the application has started successfully.
+// @Tags health
+// @Accept json
+// @Accept xml
+// @Produce json
+// @Produce xml
+// @Success 200 {object} health.StartedResponse
+// @Router /v1/self/started [get]
 func (h *selfRouter) started(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusNotImplemented)
 }
