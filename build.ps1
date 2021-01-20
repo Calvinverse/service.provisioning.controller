@@ -4,7 +4,7 @@ param(
     [switch] $Direct = $false
 )
 
-. ./scripts/utilities.ps1
+. $(Join-Path $PSScriptRoot 'scripts/utilities.ps1')
 
 $revision = Get-Revision
 Write-Output "Using revision: '$revision'"
