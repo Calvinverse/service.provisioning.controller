@@ -2,6 +2,8 @@ basePath: /api
 definitions:
   environment.Environment:
     type: object
+  health.CheckStatus:
+    type: object
   health.InfoResponse:
     properties:
       buildtime:
@@ -11,15 +13,22 @@ definitions:
       version:
         type: string
     type: object
+  health.LivelinessDetailedResponse:
+    properties:
+      checks:
+        items:
+          $ref: '#/definitions/health.CheckStatus'
+        type: array
+      status:
+        description: Global status
+        type: string
+      time:
+        description: Time the liveliness response was created at
+        type: string
+    type: object
   health.PingResponse:
     properties:
-      buildtime:
-        type: string
       response:
-        type: string
-      revision:
-        type: string
-      version:
         type: string
     type: object
 host: localhost:8080
@@ -34,7 +43,7 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: http://swagger.io/terms/
-  title: Service.Provisioning server API
+  title: Provisioning.Controller server API
   version: "1.0"
 paths:
   /v1/doc:
@@ -168,29 +177,71 @@ paths:
     get:
       consumes:
       - application/json
+      - text/xml
       description: Respond to an info request with information about the application.
       produces:
       - application/json
+      - text/xml
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/health.InfoResponse'
+        "415":
+          description: Unsupported media type
+          schema:
+            type: string
       summary: Respond to an info request
+      tags:
+      - health
+  /v1/self/liveliness:
+    get:
+      consumes:
+      - application/json
+      - text/xml
+      description: Respond to an liveliness request with information about the status
+        of the latest health checks.
+      parameters:
+      - description: options are summary or detailed
+        enum:
+        - summary
+        - detailed
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      - text/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/health.LivelinessDetailedResponse'
+        "415":
+          description: Unsupported media type
+          schema:
+            type: string
+      summary: Respond to an liveliness request
       tags:
       - health
   /v1/self/ping:
     get:
       consumes:
       - application/json
-      description: Respond to a ping request with information about the application.
+      - text/xml
+      description: Respond to a ping request with a pong response.
       produces:
       - application/json
+      - text/xml
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/health.PingResponse'
+        "415":
+          description: Unsupported media type
+          schema:
+            type: string
       summary: Respond to a ping request
       tags:
       - health

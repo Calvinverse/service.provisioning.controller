@@ -230,10 +230,12 @@ var doc = `{
             "get": {
                 "description": "Respond to an info request with information about the application.",
                 "consumes": [
-                    "application/json"
+                    "application/json",
+                    "text/xml"
                 ],
                 "produces": [
-                    "application/json"
+                    "application/json",
+                    "text/xml"
                 ],
                 "tags": [
                     "health"
@@ -245,18 +247,69 @@ var doc = `{
                         "schema": {
                             "$ref": "#/definitions/health.InfoResponse"
                         }
+                    },
+                    "415": {
+                        "description": "Unsupported media type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/self/liveliness": {
+            "get": {
+                "description": "Respond to an liveliness request with information about the status of the latest health checks.",
+                "consumes": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Respond to an liveliness request",
+                "parameters": [
+                    {
+                        "enum": [
+                            "summary",
+                            "detailed"
+                        ],
+                        "type": "string",
+                        "description": "options are summary or detailed",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/health.LivelinessDetailedResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
         },
         "/v1/self/ping": {
             "get": {
-                "description": "Respond to a ping request with information about the application.",
+                "description": "Respond to a ping request with a pong response.",
                 "consumes": [
-                    "application/json"
+                    "application/json",
+                    "text/xml"
                 ],
                 "produces": [
-                    "application/json"
+                    "application/json",
+                    "text/xml"
                 ],
                 "tags": [
                     "health"
@@ -268,6 +321,12 @@ var doc = `{
                         "schema": {
                             "$ref": "#/definitions/health.PingResponse"
                         }
+                    },
+                    "415": {
+                        "description": "Unsupported media type",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -275,6 +334,9 @@ var doc = `{
     },
     "definitions": {
         "environment.Environment": {
+            "type": "object"
+        },
+        "health.CheckStatus": {
             "type": "object"
         },
         "health.InfoResponse": {
@@ -291,19 +353,29 @@ var doc = `{
                 }
             }
         },
+        "health.LivelinessDetailedResponse": {
+            "type": "object",
+            "properties": {
+                "checks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/health.CheckStatus"
+                    }
+                },
+                "status": {
+                    "description": "Global status",
+                    "type": "string"
+                },
+                "time": {
+                    "description": "Time the liveliness response was created at",
+                    "type": "string"
+                }
+            }
+        },
         "health.PingResponse": {
             "type": "object",
             "properties": {
-                "buildtime": {
-                    "type": "string"
-                },
                 "response": {
-                    "type": "string"
-                },
-                "revision": {
-                    "type": "string"
-                },
-                "version": {
                     "type": "string"
                 }
             }
@@ -373,7 +445,7 @@ var SwaggerInfo = swaggerInfo{
 	Host:        "localhost:8080",
 	BasePath:    "/api",
 	Schemes:     []string{},
-	Title:       "Service.Provisioning server API",
+	Title:       "Provisioning.Controller server API",
 	Description: "Provides information about deployed environments and the templates used to created these environments.",
 }
 
