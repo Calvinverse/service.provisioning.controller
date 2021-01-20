@@ -190,8 +190,11 @@ A template contains
     * URL
     * Name
     * Command to execute
+  * Secrets to generate
+  * Certificates to generate
 
-
+Templates can have parameters which have a default value which can be overwritten when deploying the
+template.
 ### Resource group
 
 * ID
@@ -201,6 +204,13 @@ A template contains
 * Dependency graph
 * Name
 * Tags
+
+### Deployment
+
+A combination of a template (or multiple templates) and a configuration that describes what the
+values should be for the parameters of the templates
+
+
 
 ### Possible executors
 
