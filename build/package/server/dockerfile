@@ -1,0 +1,79 @@
+
+#
+# ------------------- BUILD GOLANG ---------------------------
+#
+FROM golang:latest as build-go
+
+LABEL maintainer="Patrick van der Velde <petrikvandervelde@gmail.com"
+
+ARG NOW
+ARG REVISION
+ARG VERSION
+
+WORKDIR /app
+
+COPY go.mod .
+COPY configs/ ./configs
+COPY internal/ ./internal
+COPY cmd/ ./cmd
+
+RUN go mod download
+
+RUN go get github.com/swaggo/swag/cmd/swag && \
+  swag init --parseInternal --output ./api --generalInfo ./internal/cmd/serve.go
+
+RUN CGO_ENABLED=0\
+  GOOS=linux\
+  go build\
+  -a\
+  -installsuffix cgo\
+  -v\
+  -ldflags="-X github.com/calvinverse/service.provisioning.controller/internal/info.sha1=${REVISION} -X github.com/calvinverse/service.provisioning.controller/internal/info.buildTime=${NOW} -X github.com/calvinverse/service.provisioning.controller/internal/info.version=${VERSION}"\
+  -o controller\
+  ./cmd
+
+# Run tests
+
+RUN CGO_ENABLED=0\
+  GOOS=linux\
+  go test -cover ./... \
+  ./cmd
+
+RUN ls -la /app
+
+#
+# ------------------- ASSEMBLE --------------------------------
+#
+
+# Should grab our base container
+FROM testcalvinverse.azurecr.io/base.container.linux:latest
+
+ARG port=8080
+
+# Create a user and group first so the IDs get set the same way, even as
+# the rest of this may change over time.
+RUN addgroup provisioning && adduser provisioning --system --ingroup provisioning
+
+RUN mkdir -p /etc/provisioning && chown -R provisioning:provisioning /etc/provisioning && \
+  mkdir -p /etc/provisioning/conf.d && chown -R provisioning:provisioning /etc/provisioning/conf.d && \
+  mkdir -p /etc/provisioning/doc && chown -R provisioning:provisioning /etc/provisioning/doc
+
+COPY --from=build-go /app/controller /usr/bin
+RUN /usr/bin/controller
+
+COPY --from=build-go /app/configs/config.yaml /etc/provisioning/conf.d
+
+COPY --from=build-go /app/api/swagger.json /etc/provisioning/doc
+
+COPY ./build/package/server/server.sh /etc/service/provisioning/run
+
+RUN dos2unix /etc/service/provisioning/run && \
+  chmod +x /etc/service/provisioning/run
+
+RUN ls -la /etc/service/provisioning
+
+ENV PROVISION_SERVICE_PORT ${port}
+ENV PROVISION_CONFIG_PATH /etc/provisioning/conf.d/config.yaml
+ENV PROVISION_DOC_PATH /etc/provisioning/doc
+
+EXPOSE ${port}

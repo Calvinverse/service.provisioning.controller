@@ -1,0 +1,8 @@
+---
+consul:
+  enabled: false
+  host: localhost
+  keyPath: config/services/provisioning.controller
+  port: 8500
+log:
+  level: debug
