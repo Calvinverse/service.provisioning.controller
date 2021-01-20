@@ -2,6 +2,7 @@ package health
 
 import (
 	"fmt"
+	"mime"
 	"net/http"
 	"time"
 
@@ -18,6 +19,7 @@ type InfoResponse struct {
 	Version   string `json:"version"`
 }
 
+// LivelinessDetailedResponse stores detailed information about the liveliness of the application, indicating if the application is healthy
 type LivelinessDetailedResponse struct {
 	// Global status
 	Status string `json:"status"`
@@ -25,10 +27,10 @@ type LivelinessDetailedResponse struct {
 	// Time the liveliness response was created at
 	Time string `json:"time"`
 
-	Checks []HealthCheckStatus `json:"checks"`
+	Checks []CheckStatus `json:"checks"`
 }
 
-// Liveliness stores the response to a liveliness request
+// LivelinessSummaryResponse stores condensed information about the liveliness of the application, indicating if the application is healthy
 type LivelinessSummaryResponse struct {
 	// Global status
 	Status string `json:"status"`
@@ -42,11 +44,14 @@ type PingResponse struct {
 	Response string `json:"response"`
 }
 
+// ReadinessResponse stores information about the readiness of the application, indicating whether the application is ready to serve responses.
 type ReadinessResponse struct {
 	Time string `json:"time"`
 }
 
+// StartedResponse stores information about the starting state of the application, indicating whether the application has started successfully.
 type StartedResponse struct {
+	Time string `json:"time"`
 }
 
 // NewHealthAPIRouter returns an APIRouter instance for the health routes.
@@ -100,8 +105,7 @@ func (h *healthRouter) ping(w http.ResponseWriter, r *http.Request) {
 		Response: fmt.Sprint("Pong - ", t.Format("Mon Jan _2 15:04:05 2006")),
 	}
 
-	// return the correct document type based on the application type
-	render.JSON(w, r, response)
+	h.responseBody(w, r, response)
 }
 
 func (h *healthRouter) readiness(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +114,24 @@ func (h *healthRouter) readiness(w http.ResponseWriter, r *http.Request) {
 
 func (h *healthRouter) started(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func (h *healthRouter) responseBody(w http.ResponseWriter, r *http.Request, data interface{}) {
+	mediatype, _, err := mime.ParseMediaType(r.Header.Get("Accept"))
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusUnsupportedMediaType), http.StatusUnsupportedMediaType)
+		return
+	}
+
+	switch mediatype {
+	case "application/xml":
+		render.XML(w, r, data)
+	case "application/json":
+		render.JSON(w, r, data)
+	default:
+		http.Error(w, http.StatusText(http.StatusUnsupportedMediaType), http.StatusUnsupportedMediaType)
+		return
+	}
 }
 
 func (h *healthRouter) Prefix() string {
