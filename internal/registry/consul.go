@@ -1,6 +1,8 @@
 package registry
 
 import (
+	"crypto/tls"
+
 	consul "github.com/hashicorp/consul/api"
 )
 
@@ -26,8 +28,34 @@ type consulDiscoveryClient struct {
 	consulAgent *consul.Agent
 }
 
-func (cd consulDiscoveryClient) Register() error {}
+func (cd *consulDiscoveryClient) Deregister(...DeregisterOption) error {
+	return nil
+}
 
-func (cd consulDiscoveryClient) Deregister() error {}
+func (cd *consulDiscoveryClient) Init(...Option) error {
+	return nil
+}
+
+func (cd *consulDiscoveryClient) Register(...RegisterOption) error {
+	return nil
+}
+
+func (cd *consulDiscoveryClient) Options() Options {
+	return Options{
+		Addrs:     []string{},
+		Timeout:   0,
+		Secure:    false,
+		TLSConfig: &tls.Config{},
+		Context:   nil,
+	}
+}
+
+func (cd *consulDiscoveryClient) GetService(string, ...GetOption) ([]*Service, error) {
+	return nil, nil
+}
+
+func (cd *consulDiscoveryClient) ListServices(...ListOption) ([]*Service, error) {
+	return nil, nil
+}
 
 // health check
