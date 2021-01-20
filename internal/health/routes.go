@@ -10,6 +10,8 @@ import (
 	"github.com/calvinverse/service.provisioning.controller/internal/router"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // InfoResponse stores the response to an info request
@@ -65,9 +67,12 @@ type healthRouter struct{}
 // @Summary Respond to an info request
 // @Description Respond to an info request with information about the application.
 // @Tags health
-// @Accept  json
-// @Produce  json
+// @Accept json
+// @Accept xml
+// @Produce json
+// @Produce xml
 // @Success 200 {object} health.InfoResponse
+// @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/info [get]
 func (h *healthRouter) info(w http.ResponseWriter, r *http.Request) {
 	response := InfoResponse{
@@ -79,6 +84,18 @@ func (h *healthRouter) info(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
+// Liveliness godoc
+// @Summary Respond to an liveliness request
+// @Description Respond to an liveliness request with information about the status of the latest health checks.
+// @Tags health
+// @Accept json
+// @Accept xml
+// @Produce json
+// @Produce xml
+// @Param type query string false "options are summary or detailed" Enums(summary, detailed)
+// @Success 200 {object} health.LivelinessDetailedResponse
+// @Failure 415 {string} string "Unsupported media type"
+// @Router /v1/self/liveliness [get]
 func (h *healthRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 	// Render liveliness status - If the 'json=detailed' query string is present show the
 	// extended JSON. Otherwise just return a short JSON response that only changes
@@ -92,11 +109,14 @@ func (h *healthRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 
 // Ping godoc
 // @Summary Respond to a ping request
-// @Description Respond to a ping request with information about the application.
+// @Description Respond to a ping request with a pong response.
 // @Tags health
-// @Accept  json
-// @Produce  json
+// @Accept json
+// @Accept xml
+// @Produce json
+// @Produce xml
 // @Success 200 {object} health.PingResponse
+// @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/ping [get]
 func (h *healthRouter) ping(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
@@ -119,6 +139,11 @@ func (h *healthRouter) started(w http.ResponseWriter, r *http.Request) {
 func (h *healthRouter) responseBody(w http.ResponseWriter, r *http.Request, data interface{}) {
 	mediatype, _, err := mime.ParseMediaType(r.Header.Get("Accept"))
 	if err != nil {
+		log.Error(
+			fmt.Sprintf(
+				"Invalid 'Accept' header. Error was %v",
+				err))
+
 		http.Error(w, http.StatusText(http.StatusUnsupportedMediaType), http.StatusUnsupportedMediaType)
 		return
 	}
@@ -129,6 +154,11 @@ func (h *healthRouter) responseBody(w http.ResponseWriter, r *http.Request, data
 	case "application/json":
 		render.JSON(w, r, data)
 	default:
+		log.Error(
+			fmt.Sprintf(
+				"Invalid media type. Expected either 'application/json' or 'application/xml', got %s.",
+				mediatype))
+
 		http.Error(w, http.StatusText(http.StatusUnsupportedMediaType), http.StatusUnsupportedMediaType)
 		return
 	}
