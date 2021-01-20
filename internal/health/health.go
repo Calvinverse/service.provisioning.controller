@@ -6,6 +6,11 @@ import (
 	gosundheit "github.com/AppsFlyer/go-sundheit"
 )
 
+const (
+	Failed  string = "failed"
+	Success string = "success"
+)
+
 var (
 	once     sync.Once
 	instance Service
@@ -20,13 +25,20 @@ type Service interface {
 
 // Status stores the health status for the application.
 type Status struct {
-	Checks []CheckStatus
+	// Checks returns the collection of checks that were executed.
+	Checks []CheckResult
+
+	// IsHealthy returns the health status for the application.
+	IsHealthy bool
 }
 
-// CheckStatus stores the results of a health check.
-type CheckStatus struct {
-	Name   string
-	Status string
+// CheckResult stores the results of a health check.
+type CheckResult struct {
+	// Name returns the name of the check.
+	Name string
+
+	// IsSuccess returns the status of the check.
+	IsSuccess bool
 }
 
 // GetServiceWithDefaultSettings returns a health service with the default settings.

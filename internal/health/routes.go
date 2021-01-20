@@ -24,7 +24,9 @@ type InfoResponse struct {
 // LivelinessDetailedResponse stores detailed information about the liveliness of the application, indicating if the application is healthy
 type LivelinessDetailedResponse struct {
 	// Status of all the health checks
-	Checks []CheckStatus `json:"checks"`
+	Checks []CheckResult `json:"checks"` // <-- this is wrong. We're using an internal type externally
+
+	foobar()
 
 	// Global status
 	Status string `json:"status"`
@@ -36,7 +38,7 @@ type LivelinessDetailedResponse struct {
 // LivelinessSummaryResponse stores condensed information about the liveliness of the application, indicating if the application is healthy
 type LivelinessSummaryResponse struct {
 	// Status of all health checks
-	Checks []string `json:"checks"`
+	Checks map[string]string `json:"checks"`
 
 	// Global status
 	Status string `json:"status"`
@@ -105,13 +107,12 @@ func (h *healthRouter) info(w http.ResponseWriter, r *http.Request) {
 // @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/liveliness [get]
 func (h *healthRouter) liveliness(w http.ResponseWriter, r *http.Request) {
-	t := time.Now()
-
-	_, err := h.healthService.Liveliness()
+	healthStatus, err := h.healthService.Liveliness()
 	if err != nil {
+		t := time.Now()
 		response := &LivelinessSummaryResponse{
-			Checks: make([]string, 0),
-			Status: "",
+			Checks: make(map[string]string),
+			Status: Failed,
 			Time:   t.Format("Mon Jan _2 15:04:05 2006"),
 		}
 
@@ -120,28 +121,61 @@ func (h *healthRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responseType := r.URL.Query().Get("type")
-
 	switch responseType {
 	case "detailed":
-		response := &LivelinessDetailedResponse{
-			Checks: make([]CheckStatus, 0),
-			Status: "",
-			Time:   t.Format("Mon Jan _2 15:04:05 2006"),
-		}
-
-		h.responseBody(w, r, response)
+		h.livelinessDetailedResponse(w, r, &healthStatus)
 	case "summary":
 		fallthrough
 	default:
-
-		response := &LivelinessSummaryResponse{
-			Checks: make([]string, 0),
-			Status: "",
-			Time:   t.Format("Mon Jan _2 15:04:05 2006"),
-		}
-
-		h.responseBody(w, r, response)
+		h.livelinessSummaryResponse(w, r, &healthStatus)
 	}
+}
+
+func (h *healthRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.Request, status *Status) {
+	t := time.Now()
+
+	statusText := Success
+	responseCode := http.StatusOK
+	if !status.IsHealthy {
+		statusText = Failed
+		responseCode = http.StatusInternalServerError
+	}
+
+	checkResults := status.Checks
+
+	response := &LivelinessDetailedResponse{
+		Checks: checkResults,
+		Status: statusText,
+		Time:   t.Format("Mon Jan _2 15:04:05 2006"),
+	}
+
+	h.responseBody(w, r, responseCode, response)
+}
+
+func (h *healthRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Request, status *Status) {
+	t := time.Now()
+
+	statusText := Success
+	responseCode := http.StatusOK
+	if !status.IsHealthy {
+		statusText = Failed
+		responseCode = http.StatusInternalServerError
+	}
+
+	var checkResults map[string]string
+	checkResults = make(map[string]string)
+
+	for _, check := range status.Checks {
+		checkResults[check.Name] = check.IsSuccess
+	}
+
+	response := &LivelinessSummaryResponse{
+		Checks: checkResults,
+		Status: statusText,
+		Time:   t.Format("Mon Jan _2 15:04:05 2006"),
+	}
+
+	h.responseBody(w, r, responseCode, response)
 }
 
 // Ping godoc
