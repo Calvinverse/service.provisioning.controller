@@ -1,6 +1,7 @@
 package health
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"net/http"
@@ -41,101 +42,48 @@ func (e *mockError) Error() string {
 // Info
 //
 
-func TestInfoWithAcceptHeaderSetToJson(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/info", nil)
-	request.Header.Set("Accept", "application/json")
-
-	w := httptest.NewRecorder()
-
-	instance := &selfRouter{}
-
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
-	router.ServeHTTP(w, request)
-
-	actualResult := InfoResponse{}
-	json.NewDecoder(w.Body).Decode(&actualResult)
-
-	if status := w.Code; status != http.StatusOK {
-		t.Errorf(
-			"handler returned wrong status code: got %v want %v",
-			status,
-			http.StatusOK)
+func TestInfo(t *testing.T) {
+	tests := map[string]struct {
+		acceptHeader string
+		decode       decodeResponseBody
+		path         string
+		queries      map[string]string
+		validate     validateResponse
+	}{
+		"info-no-header": {
+			acceptHeader: "",
+			decode:       decodeJSONFromResponseBody,
+			path:         "/info",
+			queries:      make(map[string]string),
+			validate:     validateWithoutAcceptHeader,
+		},
+		"info-json": {
+			acceptHeader: "application/json",
+			decode:       decodeJSONFromResponseBody,
+			path:         "/info",
+			queries:      make(map[string]string),
+			validate:     validateInfoWithAcceptHeader,
+		},
+		"info-xml": {
+			acceptHeader: "application/xml",
+			decode:       decodeXMLFromResponseBody,
+			path:         "/info",
+			queries:      make(map[string]string),
+			validate:     validateInfoWithAcceptHeader,
+		},
 	}
 
-	if actualResult.BuildTime != info.BuildTime() {
-		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.BuildTime, info.BuildTime())
-	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			request := setupRequest(tc.path, tc.acceptHeader, make(map[string]string))
 
-	if actualResult.Revision != info.Revision() {
-		t.Errorf("Handler returned unexpected revision: got %s wanted %s", actualResult.Revision, info.Revision())
-	}
+			w := httptest.NewRecorder()
 
-	if actualResult.Version != info.Version() {
-		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.Version, info.Version())
-	}
-}
+			router := setupHttpRouter()
+			router.ServeHTTP(w, request)
 
-func TestInfoWithAcceptHeaderSetToXml(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/info", nil)
-	request.Header.Set("Accept", "application/xml")
-
-	w := httptest.NewRecorder()
-
-	instance := &selfRouter{}
-
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
-	router.ServeHTTP(w, request)
-
-	actualResult := InfoResponse{}
-	xml.NewDecoder(w.Body).Decode(&actualResult)
-
-	if status := w.Code; status != http.StatusOK {
-		t.Errorf(
-			"handler returned wrong status code: got %v want %v",
-			status,
-			http.StatusOK)
-	}
-
-	if actualResult.BuildTime != info.BuildTime() {
-		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.BuildTime, info.BuildTime())
-	}
-
-	if actualResult.Revision != info.Revision() {
-		t.Errorf("Handler returned unexpected revision: got %s wanted %s", actualResult.Revision, info.Revision())
-	}
-
-	if actualResult.Version != info.Version() {
-		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.Version, info.Version())
-	}
-}
-
-func TestInfoWithNoAccept(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/info", nil)
-
-	w := httptest.NewRecorder()
-
-	instance := &selfRouter{}
-
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
-	router.ServeHTTP(w, request)
-
-	if status := w.Code; status != http.StatusUnsupportedMediaType {
-		t.Errorf(
-			"handler returned wrong status code: got %v want %v",
-			status,
-			http.StatusUnsupportedMediaType)
+			tc.validate(t, w, tc.decode)
+		})
 	}
 }
 
@@ -446,6 +394,26 @@ func TestPingWithNoAccept(t *testing.T) {
 // started - xml
 // started - no-accept
 
+//
+// Helper functions
+//
+
+type decodeResponseBody func(buffer *bytes.Buffer, v interface{}) error
+
+func decodeJSONFromResponseBody(buffer *bytes.Buffer, v interface{}) error {
+	return json.NewDecoder(buffer).Decode(v)
+}
+
+func decodeXMLFromResponseBody(buffer *bytes.Buffer, v interface{}) error {
+	return xml.NewDecoder(buffer).Decode(v)
+}
+
+type validateResponse func(t *testing.T, w *httptest.ResponseRecorder, decode decodeResponseBody)
+
+//
+// Setup functions
+//
+
 func createHealthServiceWithChecks(numberOfChecks int) *mockHealthService {
 	var checks []CheckResult
 	for i := 0; i < numberOfChecks; i++ {
@@ -467,6 +435,70 @@ func createHealthServiceWithChecks(numberOfChecks int) *mockHealthService {
 		error:  nil,
 	}
 	return healthService
+}
+
+func setupHttpRouter() *chi.Mux {
+	instance := &selfRouter{}
+
+	router := chi.NewRouter()
+	router.Route("/", func(r chi.Router) {
+		instance.Routes("", r)
+	})
+
+	return router
+}
+
+func setupRequest(path string, acceptHeader string, queryItems map[string]string) *http.Request {
+	request, _ := http.NewRequest("GET", path, nil)
+
+	if acceptHeader != "" {
+		request.Header.Set("Accept", acceptHeader)
+	}
+
+	for k, v := range queryItems {
+		q := request.URL.Query()
+		q.Add(k, v)
+		request.URL.RawQuery = q.Encode()
+	}
+
+	return request
+}
+
+//
+// Validation functions
+//
+
+func validateWithoutAcceptHeader(t *testing.T, w *httptest.ResponseRecorder, decode decodeResponseBody) {
+	if status := w.Code; status != http.StatusUnsupportedMediaType {
+		t.Errorf(
+			"handler returned wrong status code: got %v want %v",
+			status,
+			http.StatusUnsupportedMediaType)
+	}
+}
+
+func validateInfoWithAcceptHeader(t *testing.T, w *httptest.ResponseRecorder, decode decodeResponseBody) {
+	actualResult := InfoResponse{}
+	decode(w.Body, &actualResult)
+
+	if status := w.Code; status != http.StatusOK {
+		t.Errorf(
+			"handler returned wrong status code: got %v want %v",
+			status,
+			http.StatusOK)
+	}
+
+	if actualResult.BuildTime != info.BuildTime() {
+		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.BuildTime, info.BuildTime())
+	}
+
+	if actualResult.Revision != info.Revision() {
+		t.Errorf("Handler returned unexpected revision: got %s wanted %s", actualResult.Revision, info.Revision())
+	}
+
+	if actualResult.Version != info.Version() {
+		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.Version, info.Version())
+	}
 }
 
 func validateLivelinessDetailedResponse(t *testing.T, expectedNumberOfChecks int, result LivelinessDetailedResponse) {
