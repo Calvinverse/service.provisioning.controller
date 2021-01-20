@@ -305,84 +305,48 @@ func TestLivelinessSummaryWithAcceptHeaderSetToXml(t *testing.T) {
 // ping
 //
 
-func TestPingWithAcceptHeaderSetToJson(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/ping", nil)
-	request.Header.Set("Accept", "application/json")
-
-	w := httptest.NewRecorder()
-
-	instance := &selfRouter{}
-
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
-	router.ServeHTTP(w, request)
-
-	actualResult := PingResponse{}
-	json.NewDecoder(w.Body).Decode(&actualResult)
-
-	if status := w.Code; status != http.StatusOK {
-		t.Errorf(
-			"handler returned wrong status code: got %v want %v",
-			status,
-			http.StatusOK)
+func TestPing(t *testing.T) {
+	tests := map[string]struct {
+		acceptHeader string
+		decode       decodeResponseBody
+		path         string
+		queries      map[string]string
+		validate     validateResponse
+	}{
+		"ping-no-header": {
+			acceptHeader: "",
+			decode:       decodeJSONFromResponseBody,
+			path:         "/ping",
+			queries:      make(map[string]string),
+			validate:     validateWithoutAcceptHeader,
+		},
+		"ping-json": {
+			acceptHeader: "application/json",
+			decode:       decodeJSONFromResponseBody,
+			path:         "/ping",
+			queries:      make(map[string]string),
+			validate:     validatePingWithAcceptHeader,
+		},
+		"ping-xml": {
+			acceptHeader: "application/xml",
+			decode:       decodeXMLFromResponseBody,
+			path:         "/ping",
+			queries:      make(map[string]string),
+			validate:     validatePingWithAcceptHeader,
+		},
 	}
 
-	if !strings.HasPrefix(actualResult.Response, "Pong - ") {
-		t.Errorf("Handler returned unexpected response: got %s wanted 'Pong'", actualResult.Response)
-	}
-}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			request := setupRequest(tc.path, tc.acceptHeader, make(map[string]string))
 
-func TestPingWithAcceptHeaderSetToXml(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/ping", nil)
-	request.Header.Set("Accept", "application/xml")
+			w := httptest.NewRecorder()
 
-	w := httptest.NewRecorder()
+			router := setupHttpRouter()
+			router.ServeHTTP(w, request)
 
-	instance := &selfRouter{}
-
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
-	router.ServeHTTP(w, request)
-
-	actualResult := PingResponse{}
-	xml.NewDecoder(w.Body).Decode(&actualResult)
-
-	if status := w.Code; status != http.StatusOK {
-		t.Errorf(
-			"handler returned wrong status code: got %v want %v",
-			status,
-			http.StatusOK)
-	}
-
-	if !strings.HasPrefix(actualResult.Response, "Pong - ") {
-		t.Errorf("Handler returned unexpected response: got %s wanted 'Pong'", actualResult.Response)
-	}
-}
-
-func TestPingWithNoAccept(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/ping", nil)
-	w := httptest.NewRecorder()
-
-	instance := &selfRouter{}
-
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
-	router.ServeHTTP(w, request)
-
-	if status := w.Code; status != http.StatusUnsupportedMediaType {
-		t.Errorf(
-			"handler returned wrong status code: got %v want %v",
-			status,
-			http.StatusUnsupportedMediaType)
+			tc.validate(t, w, tc.decode)
+		})
 	}
 }
 
@@ -498,6 +462,22 @@ func validateInfoWithAcceptHeader(t *testing.T, w *httptest.ResponseRecorder, de
 
 	if actualResult.Version != info.Version() {
 		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.Version, info.Version())
+	}
+}
+
+func validatePingWithAcceptHeader(t *testing.T, w *httptest.ResponseRecorder, decode decodeResponseBody) {
+	actualResult := PingResponse{}
+	decode(w.Body, &actualResult)
+
+	if status := w.Code; status != http.StatusOK {
+		t.Errorf(
+			"handler returned wrong status code: got %v want %v",
+			status,
+			http.StatusOK)
+	}
+
+	if !strings.HasPrefix(actualResult.Response, "Pong - ") {
+		t.Errorf("Handler returned unexpected response: got %s wanted 'Pong'", actualResult.Response)
 	}
 }
 
