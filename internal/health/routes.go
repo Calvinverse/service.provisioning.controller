@@ -23,22 +23,26 @@ type InfoResponse struct {
 
 // LivelinessDetailedResponse stores detailed information about the liveliness of the application, indicating if the application is healthy
 type LivelinessDetailedResponse struct {
+	// Status of all the health checks
+	Checks []CheckStatus `json:"checks"`
+
 	// Global status
 	Status string `json:"status"`
 
 	// Time the liveliness response was created at
 	Time string `json:"time"`
-
-	Checks []CheckStatus `json:"checks"`
 }
 
 // LivelinessSummaryResponse stores condensed information about the liveliness of the application, indicating if the application is healthy
 type LivelinessSummaryResponse struct {
+	// Status of all health checks
+	Checks []string `json:"checks"`
+
 	// Global status
 	Status string `json:"status"`
 
-	// Status of all health checks
-	Checks []string `json:"checks"`
+	// Time the liveliness response was created at
+	Time string `json:"time"`
 }
 
 // PingResponse stores the response to a Ping request
@@ -58,10 +62,14 @@ type StartedResponse struct {
 
 // NewHealthAPIRouter returns an APIRouter instance for the health routes.
 func NewHealthAPIRouter() router.APIRouter {
-	return &healthRouter{}
+	return &healthRouter{
+		healthService: GetServiceWithDefaultSettings(),
+	}
 }
 
-type healthRouter struct{}
+type healthRouter struct{
+	healthService Service
+}
 
 // Info godoc
 // @Summary Respond to an info request
@@ -81,7 +89,7 @@ func (h *healthRouter) info(w http.ResponseWriter, r *http.Request) {
 		Version:   info.Version(),
 	}
 
-	render.JSON(w, r, response)
+	h.responseBody(w, r, response)
 }
 
 // Liveliness godoc
@@ -97,14 +105,47 @@ func (h *healthRouter) info(w http.ResponseWriter, r *http.Request) {
 // @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/liveliness [get]
 func (h *healthRouter) liveliness(w http.ResponseWriter, r *http.Request) {
-	// Render liveliness status - If the 'json=detailed' query string is present show the
-	// extended JSON. Otherwise just return a short JSON response that only changes
-	// when the health status changes.
-	//
-	// The short version is used for Consul etc. which prefer having unchanged responses
-	// for unchanged conditions
+	t := time.Now()
 
-	// r.URL.Query().Get("type") == "detailed"
+	currentStatus, err := h.healthService.Liveliness()
+	if err != nil {
+		response := &LivelinessSummaryResponse{
+			Checks: ,
+			Status: "",
+			Time: t,
+		}
+
+		h.responseBody(w, r, response)
+
+		// RETURN NON-200 code
+
+		return
+	}
+
+	responseType := r.URL.Query().Get("type")
+
+	switch responseType {
+	case "detailed":
+		response := &LivelinessDetailedResponse{
+			Checks: ,
+			Status: "",
+			Time: t,
+		}
+
+		h.responseBody(w, r, response)
+	case "summary":
+		fallthrough
+	default:
+
+
+		response := &LivelinessSummaryResponse{
+			Checks: ,
+			Status: "",
+			Time: t,
+		}
+
+		h.responseBody(w, r, response)
+	}
 }
 
 // Ping godoc

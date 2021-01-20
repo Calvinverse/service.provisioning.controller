@@ -110,6 +110,12 @@ func TestInfoWithNoAccept(t *testing.T) {
 	}
 }
 
+// liveliness - json - summary
+// liveliness - json - detailed
+// liveliness - xml - summary
+// liveliness - xml - detailed
+// liveliness - no-accept
+
 func TestPingWithAcceptHeaderSetToJson(t *testing.T) {
 	request, _ := http.NewRequest("GET", "/ping", nil)
 	request.Header.Set("Accept", "application/json")
@@ -190,3 +196,11 @@ func TestPingWithNoAccept(t *testing.T) {
 			http.StatusUnsupportedMediaType)
 	}
 }
+
+// readiness - json
+// readiness - xml
+// readiness - no-accept
+
+// started - json
+// started - xml
+// started - no-accept
