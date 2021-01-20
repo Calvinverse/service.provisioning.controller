@@ -30,7 +30,7 @@ type resolver struct {
 
 func (r *resolver) resolveAPIRouters() []router.APIRouter {
 	docRouter := doc.NewDocumentationRouter(r.cfg)
-	healthRouter := health.NewHealthAPIRouter()
+	healthRouter := health.NewSelfAPIRouter()
 	return []router.APIRouter{
 		docRouter,
 		healthRouter,

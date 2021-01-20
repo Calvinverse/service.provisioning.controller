@@ -18,7 +18,7 @@ func TestInfoWithAcceptHeaderSetToJson(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	instance := &healthRouter{}
+	instance := &selfRouter{}
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
@@ -56,7 +56,7 @@ func TestInfoWithAcceptHeaderSetToXml(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	instance := &healthRouter{}
+	instance := &selfRouter{}
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
@@ -93,7 +93,7 @@ func TestInfoWithNoAccept(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	instance := &healthRouter{}
+	instance := &selfRouter{}
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
@@ -122,7 +122,7 @@ func TestPingWithAcceptHeaderSetToJson(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	instance := &healthRouter{}
+	instance := &selfRouter{}
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
@@ -152,7 +152,7 @@ func TestPingWithAcceptHeaderSetToXml(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	instance := &healthRouter{}
+	instance := &selfRouter{}
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
@@ -180,7 +180,7 @@ func TestPingWithNoAccept(t *testing.T) {
 	request, _ := http.NewRequest("GET", "/ping", nil)
 	w := httptest.NewRecorder()
 
-	instance := &healthRouter{}
+	instance := &selfRouter{}
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {

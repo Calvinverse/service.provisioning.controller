@@ -62,15 +62,33 @@ type StartedResponse struct {
 	Time string `json:"time"`
 }
 
-// NewHealthAPIRouter returns an APIRouter instance for the health routes.
-func NewHealthAPIRouter() router.APIRouter {
-	return &healthRouter{
+// NewSelfAPIRouter returns an APIRouter instance for the health routes.
+func NewSelfAPIRouter() router.APIRouter {
+	return &selfRouter{
 		healthService: GetServiceWithDefaultSettings(),
 	}
 }
 
-type healthRouter struct {
+// selfRouter defines an APIRouter that routes the 'self' metadata routes.
+type selfRouter struct {
 	healthService Service
+}
+
+func (h *selfRouter) Prefix() string {
+	return "self"
+}
+
+// Routes creates the routes for the health package
+func (h *selfRouter) Routes(prefix string, r chi.Router) {
+	r.Get(fmt.Sprintf("%s/info", prefix), h.info)
+	r.Get(fmt.Sprintf("%s/liveliness", prefix), h.liveliness)
+	r.Get(fmt.Sprintf("%s/ping", prefix), h.ping)
+	r.Get(fmt.Sprintf("%s/readiness", prefix), h.readiness)
+	r.Get(fmt.Sprintf("%s/started", prefix), h.started)
+}
+
+func (h *selfRouter) Version() int8 {
+	return 1
 }
 
 // Info godoc
@@ -84,7 +102,7 @@ type healthRouter struct {
 // @Success 200 {object} health.InfoResponse
 // @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/info [get]
-func (h *healthRouter) info(w http.ResponseWriter, r *http.Request) {
+func (h *selfRouter) info(w http.ResponseWriter, r *http.Request) {
 	response := InfoResponse{
 		BuildTime: info.BuildTime(),
 		Revision:  info.Revision(),
@@ -106,7 +124,7 @@ func (h *healthRouter) info(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} health.LivelinessDetailedResponse
 // @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/liveliness [get]
-func (h *healthRouter) liveliness(w http.ResponseWriter, r *http.Request) {
+func (h *selfRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 	healthStatus, err := h.healthService.Liveliness()
 	if err != nil {
 		t := time.Now()
@@ -131,7 +149,7 @@ func (h *healthRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *healthRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.Request, status *Status) {
+func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.Request, status *Status) {
 	t := time.Now()
 
 	statusText := Success
@@ -152,7 +170,7 @@ func (h *healthRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http
 	h.responseBody(w, r, responseCode, response)
 }
 
-func (h *healthRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Request, status *Status) {
+func (h *selfRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Request, status *Status) {
 	t := time.Now()
 
 	statusText := Success
@@ -189,7 +207,7 @@ func (h *healthRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.
 // @Success 200 {object} health.PingResponse
 // @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/ping [get]
-func (h *healthRouter) ping(w http.ResponseWriter, r *http.Request) {
+func (h *selfRouter) ping(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
 
 	response := PingResponse{
@@ -199,15 +217,13 @@ func (h *healthRouter) ping(w http.ResponseWriter, r *http.Request) {
 	h.responseBody(w, r, http.StatusOK, response)
 }
 
-func (h *healthRouter) readiness(w http.ResponseWriter, r *http.Request) {
-
+func (h *selfRouter) readiness(w http.ResponseWriter, r *http.Request) {
 }
 
-func (h *healthRouter) started(w http.ResponseWriter, r *http.Request) {
-
+func (h *selfRouter) started(w http.ResponseWriter, r *http.Request) {
 }
 
-func (h *healthRouter) responseBody(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
+func (h *selfRouter) responseBody(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
 	mediatype, _, err := mime.ParseMediaType(r.Header.Get("Accept"))
 	if err != nil {
 		log.Error(
