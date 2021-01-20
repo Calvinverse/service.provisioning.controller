@@ -14,19 +14,34 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// CheckInformation stores information about the status of a health check.
+type CheckInformation struct {
+	// Name returns the name of the health check.
+	Name string `json:"name"`
+
+	// Status returns the status of the health check, either success or failure.
+	Status string `json:"status"`
+
+	// Timestamp returns the time the healtcheck was executed.
+	Timestamp string `json:"timestamp"`
+}
+
 // InfoResponse stores the response to an info request
 type InfoResponse struct {
+	// BuildTime stores the date and time the application was built.
 	BuildTime string `json:"buildtime"`
-	Revision  string `json:"revision"`
-	Version   string `json:"version"`
+
+	// Revision stores the GIT SHA of the commit on which the application build was based.
+	Revision string `json:"revision"`
+
+	// Version stores the version number of the application.
+	Version string `json:"version"`
 }
 
 // LivelinessDetailedResponse stores detailed information about the liveliness of the application, indicating if the application is healthy
 type LivelinessDetailedResponse struct {
 	// Status of all the health checks
-	Checks []CheckResult `json:"checks"` // <-- this is wrong. We're using an internal type externally
-
-	foobar()
+	Checks []CheckInformation `json:"checks"`
 
 	// Global status
 	Status string `json:"status"`
@@ -127,14 +142,12 @@ func (h *selfRouter) info(w http.ResponseWriter, r *http.Request) {
 func (h *selfRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 	healthStatus, err := h.healthService.Liveliness()
 	if err != nil {
-		t := time.Now()
-		response := &LivelinessSummaryResponse{
-			Checks: make(map[string]string),
-			Status: Failed,
-			Time:   t.Format("Mon Jan _2 15:04:05 2006"),
+		healthStatus = Status{
+			Checks:    make([]CheckResult, 0, 0),
+			IsHealthy: false,
 		}
 
-		h.responseBody(w, r, http.StatusInternalServerError, response)
+		h.livelinessSummaryResponse(w, r, &healthStatus)
 		return
 	}
 
@@ -152,14 +165,20 @@ func (h *selfRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.Request, status *Status) {
 	t := time.Now()
 
-	statusText := Success
-	responseCode := http.StatusOK
-	if !status.IsHealthy {
-		statusText = Failed
-		responseCode = http.StatusInternalServerError
-	}
+	statusText := statusToText(status.IsHealthy)
+	responseCode := statusToResponseCode(status.IsHealthy)
 
-	checkResults := status.Checks
+	var checkResults []CheckInformation
+	checkResults = make([]CheckInformation, len(status.Checks))
+	for _, check := range status.Checks {
+
+		result := CheckInformation{
+			Name:      check.Name,
+			Status:    statusToText(check.IsSuccess),
+			Timestamp: check.Timestamp.Format("Mon Jan _2 15:04:05 2006"),
+		}
+		checkResults = append(checkResults, result)
+	}
 
 	response := &LivelinessDetailedResponse{
 		Checks: checkResults,
@@ -173,18 +192,14 @@ func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.R
 func (h *selfRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Request, status *Status) {
 	t := time.Now()
 
-	statusText := Success
-	responseCode := http.StatusOK
-	if !status.IsHealthy {
-		statusText = Failed
-		responseCode = http.StatusInternalServerError
-	}
+	statusText := statusToText(status.IsHealthy)
+	responseCode := statusToResponseCode(status.IsHealthy)
 
 	var checkResults map[string]string
 	checkResults = make(map[string]string)
 
 	for _, check := range status.Checks {
-		checkResults[check.Name] = check.IsSuccess
+		checkResults[check.Name] = statusToText(check.IsSuccess)
 	}
 
 	response := &LivelinessSummaryResponse{
@@ -218,9 +233,11 @@ func (h *selfRouter) ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *selfRouter) readiness(w http.ResponseWriter, r *http.Request) {
+	render.Status(r, http.StatusNotImplemented)
 }
 
 func (h *selfRouter) started(w http.ResponseWriter, r *http.Request) {
+	render.Status(r, http.StatusNotImplemented)
 }
 
 func (h *selfRouter) responseBody(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
@@ -253,19 +270,19 @@ func (h *selfRouter) responseBody(w http.ResponseWriter, r *http.Request, status
 	}
 }
 
-func (h *healthRouter) Prefix() string {
-	return "self"
+func statusToResponseCode(status bool) int {
+	responseCode := http.StatusOK
+	if !status {
+		responseCode = http.StatusInternalServerError
+	}
+	return responseCode
 }
 
-// Routes creates the routes for the health package
-func (h *healthRouter) Routes(prefix string, r chi.Router) {
-	r.Get(fmt.Sprintf("%s/info", prefix), h.info)
-	r.Get(fmt.Sprintf("%s/liveliness", prefix), h.liveliness)
-	r.Get(fmt.Sprintf("%s/ping", prefix), h.ping)
-	r.Get(fmt.Sprintf("%s/readiness", prefix), h.readiness)
-	r.Get(fmt.Sprintf("%s/started", prefix), h.started)
-}
+func statusToText(status bool) string {
+	statusText := Success
+	if !status {
+		statusText = Failed
+	}
 
-func (h *healthRouter) Version() int8 {
-	return 1
+	return statusText
 }

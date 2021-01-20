@@ -2,12 +2,16 @@ package health
 
 import (
 	"sync"
+	"time"
 
 	gosundheit "github.com/AppsFlyer/go-sundheit"
 )
 
 const (
-	Failed  string = "failed"
+	// Failed indicates the health or a health check is failing.
+	Failed string = "failed"
+
+	// Success indicates the health or a health check is successful.
 	Success string = "success"
 )
 
@@ -18,9 +22,13 @@ var (
 
 // Service defines a service that tracks the health of the application.
 type Service interface {
+	// Liveliness returns the status indicating if the application is healthy while processing requests.
 	Liveliness() (Status, error)
 
+	// Readiness returns the status indicating if the application is ready to process requests.
 	Readiness() (Status, error)
+
+	// Add a health check
 }
 
 // Status stores the health status for the application.
@@ -34,11 +42,14 @@ type Status struct {
 
 // CheckResult stores the results of a health check.
 type CheckResult struct {
+	// IsSuccess returns the status of the check.
+	IsSuccess bool
+
 	// Name returns the name of the check.
 	Name string
 
-	// IsSuccess returns the status of the check.
-	IsSuccess bool
+	// The last time the check result was updated.
+	Timestamp time.Time
 }
 
 // GetServiceWithDefaultSettings returns a health service with the default settings.
