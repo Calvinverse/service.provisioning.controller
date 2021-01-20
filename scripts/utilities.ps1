@@ -116,5 +116,6 @@ function New-LocalBuild
 
     go build -a -installsuffix cgo -v -ldflags="-X github.com/calvinverse/service.provisioning.controller/internal/info.sha1=$sha1 -X github.com/calvinverse/service.provisioning.controller/internal/info.buildTime=$date -X github.com/calvinverse/service.provisioning.controller/internal/info.version=$version" -o $outputDir/controller.exe ./cmd
 
-    go test -cover ./... ./cmd
+    go test -cover -coverprofile="$outputDir/coverage.log" -v ./... ./cmd
+    go tool cover -html="$outputDir/coverage.log" -o "$outputDir/coverage.html"
 }
