@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"net/http"
 	"net/http/httptest"
-	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -213,12 +212,14 @@ func TestLivelinessWithNoAccept(t *testing.T) {
 func TestLivelinessDetailedWithAcceptHeaderSetToJson(t *testing.T) {
 	request, _ := http.NewRequest("GET", "/liveliness", nil)
 	request.Header.Set("Accept", "application/json")
+
 	q := request.URL.Query()
 	q.Add("type", "detailed")
+	request.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
 
-	numberOfChecks := 10
+	numberOfChecks := 2
 
 	healthService := createHealthServiceWithChecks(numberOfChecks)
 	instance := &selfRouter{
@@ -248,12 +249,14 @@ func TestLivelinessDetailedWithAcceptHeaderSetToJson(t *testing.T) {
 func TestLivelinessDetailedWithAcceptHeaderSetToXml(t *testing.T) {
 	request, _ := http.NewRequest("GET", "/liveliness", nil)
 	request.Header.Set("Accept", "application/xml")
+
 	q := request.URL.Query()
 	q.Add("type", "detailed")
+	request.URL.RawQuery = q.Encode()
 
 	w := httptest.NewRecorder()
 
-	numberOfChecks := 10
+	numberOfChecks := 2
 
 	healthService := createHealthServiceWithChecks(numberOfChecks)
 	instance := &selfRouter{
@@ -288,7 +291,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToJson(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	numberOfChecks := 10
+	numberOfChecks := 2
 
 	healthService := createHealthServiceWithChecks(numberOfChecks)
 	instance := &selfRouter{
@@ -323,7 +326,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToXml(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	numberOfChecks := 10
+	numberOfChecks := 2
 
 	healthService := createHealthServiceWithChecks(numberOfChecks)
 	instance := &selfRouter{
@@ -505,22 +508,15 @@ func validateLivelinessSummaryResponse(t *testing.T, expectedNumberOfChecks int,
 		t.Errorf("Handler returned unexpected number of checks: got %d wanted %d", len(result.Checks), expectedNumberOfChecks)
 	}
 
-	var keys []string
-	for k := range result.Checks {
-		keys = append(keys, k)
-	}
-
-	sort.Strings(keys)
-	for i, k := range keys {
+	for i, k := range result.Checks {
 
 		expectedName := strconv.Itoa(i)
-		if k != expectedName {
-			t.Errorf("Check has an unexpected name: got %s wanted %s", k, expectedName)
+		if k.Name != expectedName {
+			t.Errorf("Check has an unexpected name: got %s wanted %s", k.Name, expectedName)
 		}
 
-		v := result.Checks[k]
-		if v != Success {
-			t.Errorf("Check had an unexpected status. Expected Success got %s", v)
+		if k.Status != Success {
+			t.Errorf("Check had an unexpected status. Expected Success got %s", k.Status)
 		}
 	}
 }

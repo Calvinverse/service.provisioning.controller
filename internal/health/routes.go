@@ -14,8 +14,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CheckInformation stores information about the status of a health check.
-type CheckInformation struct {
+// DetailedCheckInformation stores information about the status of a health check.
+type DetailedCheckInformation struct {
 	// Name returns the name of the health check.
 	Name string `json:"name"`
 
@@ -41,7 +41,7 @@ type InfoResponse struct {
 // LivelinessDetailedResponse stores detailed information about the liveliness of the application, indicating if the application is healthy
 type LivelinessDetailedResponse struct {
 	// Status of all the health checks
-	Checks []CheckInformation `json:"checks"`
+	Checks []DetailedCheckInformation `json:"checks"`
 
 	// Global status
 	Status string `json:"status"`
@@ -53,7 +53,7 @@ type LivelinessDetailedResponse struct {
 // LivelinessSummaryResponse stores condensed information about the liveliness of the application, indicating if the application is healthy
 type LivelinessSummaryResponse struct {
 	// Status of all health checks
-	Checks map[string]string `json:"checks"`
+	Checks []SummaryCheckInformation `json:"checks"`
 
 	// Global status
 	Status string `json:"status"`
@@ -75,6 +75,15 @@ type ReadinessResponse struct {
 // StartedResponse stores information about the starting state of the application, indicating whether the application has started successfully.
 type StartedResponse struct {
 	Time string `json:"time"`
+}
+
+// SummaryCheckInformation stores the minimal information about the status of a health check.
+type SummaryCheckInformation struct {
+	// Name returns the name of the health check.
+	Name string `json:"name"`
+
+	// Status returns the status of the health check, either success or failure.
+	Status string `json:"status"`
 }
 
 // NewSelfAPIRouter returns an APIRouter instance for the health routes.
@@ -168,11 +177,11 @@ func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.R
 	statusText := statusToText(status.IsHealthy)
 	responseCode := statusToResponseCode(status.IsHealthy)
 
-	var checkResults []CheckInformation
-	checkResults = make([]CheckInformation, len(status.Checks))
+	var checkResults []DetailedCheckInformation
+	checkResults = make([]DetailedCheckInformation, 0, len(status.Checks))
 	for _, check := range status.Checks {
 
-		result := CheckInformation{
+		result := DetailedCheckInformation{
 			Name:      check.Name,
 			Status:    statusToText(check.IsSuccess),
 			Timestamp: check.Timestamp.Format(time.RFC3339),
@@ -195,11 +204,15 @@ func (h *selfRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Re
 	statusText := statusToText(status.IsHealthy)
 	responseCode := statusToResponseCode(status.IsHealthy)
 
-	var checkResults map[string]string
-	checkResults = make(map[string]string)
-
+	var checkResults []SummaryCheckInformation
+	checkResults = make([]SummaryCheckInformation, 0, len(status.Checks))
 	for _, check := range status.Checks {
-		checkResults[check.Name] = statusToText(check.IsSuccess)
+
+		result := SummaryCheckInformation{
+			Name:   check.Name,
+			Status: statusToText(check.IsSuccess),
+		}
+		checkResults = append(checkResults, result)
 	}
 
 	response := &LivelinessSummaryResponse{
