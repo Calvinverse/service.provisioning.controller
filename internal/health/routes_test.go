@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -219,26 +220,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToJson(t *testing.T) {
 
 	numberOfChecks := 10
 
-	var checks []CheckResult
-	for i := 0; i < numberOfChecks; i++ {
-		check := CheckResult{
-			IsSuccess: true,
-			Name:      strconv.Itoa(i),
-			Timestamp: time.Date(2021, time.January, i, i, i, i, 0, time.Local),
-		}
-		checks = append(checks, check)
-	}
-
-	status := Status{
-		Checks:    checks,
-		IsHealthy: true,
-	}
-
-	healthService := &mockHealthService{
-		status: status,
-		error:  nil,
-	}
-
+	healthService := createHealthServiceWithChecks(numberOfChecks)
 	instance := &selfRouter{
 		healthService: healthService,
 	}
@@ -260,33 +242,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToJson(t *testing.T) {
 			http.StatusOK)
 	}
 
-	if actualResult.Status != Success {
-		t.Errorf("Handler returned unexpected status: got %s wanted %s", actualResult.Status, Success)
-	}
-
-	if len(actualResult.Checks) != numberOfChecks {
-		t.Errorf("Handler returned unexpected number of checks: got %d wanted %d", len(actualResult.Checks), numberOfChecks)
-	}
-
-	for i, c := range actualResult.Checks {
-		if c.Name != strconv.Itoa(i) {
-			t.Errorf("Check %d has an unexpected name: got %s wanted %s", i, c.Name, strconv.Itoa(i))
-		}
-
-		if c.Status != Success {
-			t.Errorf("Check %d had an unexpected status. Expected Success got %s", i, c.Status)
-		}
-
-		parsedTime, err := time.Parse(time.RFC3339, c.Timestamp)
-		if err != nil {
-			t.Errorf("Check %d contained a timestamp that was not parsable. Got %s", i, c.Timestamp)
-		}
-
-		expectedTime := time.Date(2021, time.January, i, i, i, i, 0, time.Local)
-		if parsedTime != expectedTime {
-			t.Errorf("Check %d had an unexpected timestamp. Got %s wanted %s", i, c.Timestamp, expectedTime.Format(time.RFC3339))
-		}
-	}
+	validateLivelinessDetailedResponse(t, numberOfChecks, actualResult)
 }
 
 func TestLivelinessDetailedWithAcceptHeaderSetToXml(t *testing.T) {
@@ -299,26 +255,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToXml(t *testing.T) {
 
 	numberOfChecks := 10
 
-	var checks []CheckResult
-	for i := 0; i < numberOfChecks; i++ {
-		check := CheckResult{
-			IsSuccess: true,
-			Name:      strconv.Itoa(i),
-			Timestamp: time.Date(2021, time.January, i, i, i, i, 0, time.Local),
-		}
-		checks = append(checks, check)
-	}
-
-	status := Status{
-		Checks:    checks,
-		IsHealthy: true,
-	}
-
-	healthService := &mockHealthService{
-		status: status,
-		error:  nil,
-	}
-
+	healthService := createHealthServiceWithChecks(numberOfChecks)
 	instance := &selfRouter{
 		healthService: healthService,
 	}
@@ -340,33 +277,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToXml(t *testing.T) {
 			http.StatusOK)
 	}
 
-	if actualResult.Status != Success {
-		t.Errorf("Handler returned unexpected status: got %s wanted %s", actualResult.Status, Success)
-	}
-
-	if len(actualResult.Checks) != numberOfChecks {
-		t.Errorf("Handler returned unexpected number of checks: got %d wanted %d", len(actualResult.Checks), numberOfChecks)
-	}
-
-	for i, c := range actualResult.Checks {
-		if c.Name != strconv.Itoa(i) {
-			t.Errorf("Check %d has an unexpected name: got %s wanted %s", i, c.Name, strconv.Itoa(i))
-		}
-
-		if c.Status != Success {
-			t.Errorf("Check %d had an unexpected status. Expected Success got %s", i, c.Status)
-		}
-
-		parsedTime, err := time.Parse(time.RFC3339, c.Timestamp)
-		if err != nil {
-			t.Errorf("Check %d contained a timestamp that was not parsable. Got %s", i, c.Timestamp)
-		}
-
-		expectedTime := time.Date(2021, time.January, i, i, i, i, 0, time.Local)
-		if parsedTime != expectedTime {
-			t.Errorf("Check %d had an unexpected timestamp. Got %s wanted %s", i, c.Timestamp, expectedTime.Format(time.RFC3339))
-		}
-	}
+	validateLivelinessDetailedResponse(t, numberOfChecks, actualResult)
 }
 
 func TestLivelinessSummaryWithAcceptHeaderSetToJson(t *testing.T) {
@@ -379,26 +290,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToJson(t *testing.T) {
 
 	numberOfChecks := 10
 
-	var checks []CheckResult
-	for i := 0; i < numberOfChecks; i++ {
-		check := CheckResult{
-			IsSuccess: true,
-			Name:      strconv.Itoa(i),
-			Timestamp: time.Date(2021, time.January, i, i, i, i, 0, time.Local),
-		}
-		checks = append(checks, check)
-	}
-
-	status := Status{
-		Checks:    checks,
-		IsHealthy: true,
-	}
-
-	healthService := &mockHealthService{
-		status: status,
-		error:  nil,
-	}
-
+	healthService := createHealthServiceWithChecks(numberOfChecks)
 	instance := &selfRouter{
 		healthService: healthService,
 	}
@@ -420,27 +312,42 @@ func TestLivelinessSummaryWithAcceptHeaderSetToJson(t *testing.T) {
 			http.StatusOK)
 	}
 
-	if actualResult.Status != Success {
-		t.Errorf("Handler returned unexpected status: got %s wanted %s", actualResult.Status, Success)
-	}
-
-	if len(actualResult.Checks) != numberOfChecks {
-		t.Errorf("Handler returned unexpected number of checks: got %d wanted %d", len(actualResult.Checks), numberOfChecks)
-	}
-
-	for k, v := range actualResult.Checks {
-		if k != "" {
-			t.Errorf("Check has an unexpected name: got %s wanted %s", k, "")
-		}
-
-		if v != Success {
-			t.Errorf("Check had an unexpected status. Expected Success got %s", v)
-		}
-	}
+	validateLivelinessSummaryResponse(t, numberOfChecks, actualResult)
 }
 
 func TestLivelinessSummaryWithAcceptHeaderSetToXml(t *testing.T) {
-	t.Fail()
+	request, _ := http.NewRequest("GET", "/liveliness", nil)
+	request.Header.Set("Accept", "application/xml")
+	q := request.URL.Query()
+	q.Add("type", "summary")
+
+	w := httptest.NewRecorder()
+
+	numberOfChecks := 10
+
+	healthService := createHealthServiceWithChecks(numberOfChecks)
+	instance := &selfRouter{
+		healthService: healthService,
+	}
+
+	router := chi.NewRouter()
+	router.Route("/", func(r chi.Router) {
+		instance.Routes("", r)
+	})
+
+	router.ServeHTTP(w, request)
+
+	actualResult := LivelinessSummaryResponse{}
+	xml.NewDecoder(w.Body).Decode(&actualResult)
+
+	if status := w.Code; status != http.StatusOK {
+		t.Errorf(
+			"handler returned wrong status code: got %v want %v",
+			status,
+			http.StatusOK)
+	}
+
+	validateLivelinessSummaryResponse(t, numberOfChecks, actualResult)
 }
 
 //
@@ -535,3 +442,85 @@ func TestPingWithNoAccept(t *testing.T) {
 // started - json
 // started - xml
 // started - no-accept
+
+func createHealthServiceWithChecks(numberOfChecks int) *mockHealthService {
+	var checks []CheckResult
+	for i := 0; i < numberOfChecks; i++ {
+		check := CheckResult{
+			IsSuccess: true,
+			Name:      strconv.Itoa(i),
+			Timestamp: time.Date(2021, time.January, i, i, i, i, 0, time.Local),
+		}
+		checks = append(checks, check)
+	}
+
+	status := Status{
+		Checks:    checks,
+		IsHealthy: true,
+	}
+
+	healthService := &mockHealthService{
+		status: status,
+		error:  nil,
+	}
+	return healthService
+}
+
+func validateLivelinessDetailedResponse(t *testing.T, expectedNumberOfChecks int, result LivelinessDetailedResponse) {
+	if result.Status != Success {
+		t.Errorf("Handler returned unexpected status: got %s wanted %s", result.Status, Success)
+	}
+
+	if len(result.Checks) != expectedNumberOfChecks {
+		t.Errorf("Handler returned unexpected number of checks: got %d wanted %d", len(result.Checks), expectedNumberOfChecks)
+	}
+
+	for i, c := range result.Checks {
+		if c.Name != strconv.Itoa(i) {
+			t.Errorf("Check %d has an unexpected name: got %s wanted %s", i, c.Name, strconv.Itoa(i))
+		}
+
+		if c.Status != Success {
+			t.Errorf("Check %d had an unexpected status. Expected Success got %s", i, c.Status)
+		}
+
+		parsedTime, err := time.Parse(time.RFC3339, c.Timestamp)
+		if err != nil {
+			t.Errorf("Check %d contained a timestamp that was not parsable. Got %s", i, c.Timestamp)
+		}
+
+		expectedTime := time.Date(2021, time.January, i, i, i, i, 0, time.Local)
+		if parsedTime != expectedTime {
+			t.Errorf("Check %d had an unexpected timestamp. Got %s wanted %s", i, c.Timestamp, expectedTime.Format(time.RFC3339))
+		}
+	}
+}
+
+func validateLivelinessSummaryResponse(t *testing.T, expectedNumberOfChecks int, result LivelinessSummaryResponse) {
+	if result.Status != Success {
+		t.Errorf("Handler returned unexpected status: got %s wanted %s", result.Status, Success)
+	}
+
+	if len(result.Checks) != expectedNumberOfChecks {
+		t.Errorf("Handler returned unexpected number of checks: got %d wanted %d", len(result.Checks), expectedNumberOfChecks)
+	}
+
+	var keys []string
+	for k := range result.Checks {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+	for i, k := range keys {
+
+		expectedName := strconv.Itoa(i)
+		if k != expectedName {
+			t.Errorf("Check has an unexpected name: got %s wanted %s", k, expectedName)
+		}
+
+		v := result.Checks[k]
+		if v != Success {
+			t.Errorf("Check had an unexpected status. Expected Success got %s", v)
+		}
+	}
+}

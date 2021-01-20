@@ -276,9 +276,11 @@ func (h *selfRouter) responseBody(w http.ResponseWriter, r *http.Request, status
 	case "application/xml":
 		render.Status(r, status)
 		render.XML(w, r, data)
+		return
 	case "application/json":
 		render.Status(r, status)
 		render.JSON(w, r, data)
+		return
 	default:
 		log.Error(
 			fmt.Sprintf(
