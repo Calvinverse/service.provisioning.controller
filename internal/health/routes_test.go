@@ -42,49 +42,37 @@ func (e *mockError) Error() string {
 // Info
 //
 
-func TestInfo(t *testing.T) {
-	tests := map[string]struct {
-		acceptHeader string
-		decode       decodeResponseBody
-		path         string
-		queries      map[string]string
-		validate     validateResponse
-	}{
-		"info-no-header": {
-			acceptHeader: "",
-			decode:       decodeJSONFromResponseBody,
-			path:         "/info",
-			queries:      make(map[string]string),
-			validate:     validateWithoutAcceptHeader,
-		},
-		"info-json": {
-			acceptHeader: "application/json",
-			decode:       decodeJSONFromResponseBody,
-			path:         "/info",
-			queries:      make(map[string]string),
-			validate:     validateInfoWithAcceptHeader,
-		},
-		"info-xml": {
-			acceptHeader: "application/xml",
-			decode:       decodeXMLFromResponseBody,
-			path:         "/info",
-			queries:      make(map[string]string),
-			validate:     validateInfoWithAcceptHeader,
-		},
-	}
+func TestInfoyWithAcceptHeaderSetToJson(t *testing.T) {
+	request := setupRequest("/info", "application/json", make(map[string]string))
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			request := setupRequest(tc.path, tc.acceptHeader, make(map[string]string))
+	w := httptest.NewRecorder()
 
-			w := httptest.NewRecorder()
+	router := setupHttpRouter(&selfRouter{})
+	router.ServeHTTP(w, request)
 
-			router := setupHttpRouter()
-			router.ServeHTTP(w, request)
+	validateInfoWithAcceptHeader(t, w, decodeJSONFromResponseBody)
+}
 
-			tc.validate(t, w, tc.decode)
-		})
-	}
+func TestInfoyWithAcceptHeaderSetToXml(t *testing.T) {
+	request := setupRequest("/info", "application/xml", make(map[string]string))
+
+	w := httptest.NewRecorder()
+
+	router := setupHttpRouter(&selfRouter{})
+	router.ServeHTTP(w, request)
+
+	validateInfoWithAcceptHeader(t, w, decodeXMLFromResponseBody)
+}
+
+func TestInfoWithoutHeader(t *testing.T) {
+	request := setupRequest("/info", "", make(map[string]string))
+
+	w := httptest.NewRecorder()
+
+	router := setupHttpRouter(&selfRouter{})
+	router.ServeHTTP(w, request)
+
+	validateWithoutAcceptHeader(t, w, decodeJSONFromResponseBody)
 }
 
 //
@@ -131,7 +119,7 @@ func TestLivelinessWithFailingHealthAndHeaderSetToJson(t *testing.T) {
 }
 
 func TestLivelinessWithNoAccept(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/liveliness", nil)
+	request := setupRequest("/liveliness", "", make(map[string]string))
 
 	w := httptest.NewRecorder()
 
@@ -142,28 +130,18 @@ func TestLivelinessWithNoAccept(t *testing.T) {
 		healthService: healthService,
 	}
 
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
+	router := setupHttpRouter(instance)
 	router.ServeHTTP(w, request)
 
-	if status := w.Code; status != http.StatusUnsupportedMediaType {
-		t.Errorf(
-			"handler returned wrong status code: got %v want %v",
-			status,
-			http.StatusUnsupportedMediaType)
-	}
+	validateWithoutAcceptHeader(t, w, decodeJSONFromResponseBody)
 }
 
 func TestLivelinessDetailedWithAcceptHeaderSetToJson(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/liveliness", nil)
-	request.Header.Set("Accept", "application/json")
+	queryParameters := map[string]string{
+		"type": "detailed",
+	}
 
-	q := request.URL.Query()
-	q.Add("type", "detailed")
-	request.URL.RawQuery = q.Encode()
+	request := setupRequest("/liveliness", "application/json", queryParameters)
 
 	w := httptest.NewRecorder()
 
@@ -174,11 +152,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToJson(t *testing.T) {
 		healthService: healthService,
 	}
 
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
+	router := setupHttpRouter(instance)
 	router.ServeHTTP(w, request)
 
 	actualResult := LivelinessDetailedResponse{}
@@ -195,12 +169,11 @@ func TestLivelinessDetailedWithAcceptHeaderSetToJson(t *testing.T) {
 }
 
 func TestLivelinessDetailedWithAcceptHeaderSetToXml(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/liveliness", nil)
-	request.Header.Set("Accept", "application/xml")
+	queryParameters := map[string]string{
+		"type": "detailed",
+	}
 
-	q := request.URL.Query()
-	q.Add("type", "detailed")
-	request.URL.RawQuery = q.Encode()
+	request := setupRequest("/liveliness", "application/xml", queryParameters)
 
 	w := httptest.NewRecorder()
 
@@ -211,11 +184,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToXml(t *testing.T) {
 		healthService: healthService,
 	}
 
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
+	router := setupHttpRouter(instance)
 	router.ServeHTTP(w, request)
 
 	actualResult := LivelinessDetailedResponse{}
@@ -232,10 +201,11 @@ func TestLivelinessDetailedWithAcceptHeaderSetToXml(t *testing.T) {
 }
 
 func TestLivelinessSummaryWithAcceptHeaderSetToJson(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/liveliness", nil)
-	request.Header.Set("Accept", "application/json")
-	q := request.URL.Query()
-	q.Add("type", "summary")
+	queryParameters := map[string]string{
+		"type": "summary",
+	}
+
+	request := setupRequest("/liveliness", "application/json", queryParameters)
 
 	w := httptest.NewRecorder()
 
@@ -246,11 +216,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToJson(t *testing.T) {
 		healthService: healthService,
 	}
 
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
+	router := setupHttpRouter(instance)
 	router.ServeHTTP(w, request)
 
 	actualResult := LivelinessSummaryResponse{}
@@ -267,10 +233,11 @@ func TestLivelinessSummaryWithAcceptHeaderSetToJson(t *testing.T) {
 }
 
 func TestLivelinessSummaryWithAcceptHeaderSetToXml(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/liveliness", nil)
-	request.Header.Set("Accept", "application/xml")
-	q := request.URL.Query()
-	q.Add("type", "summary")
+	queryParameters := map[string]string{
+		"type": "summary",
+	}
+
+	request := setupRequest("/liveliness", "application/xml", queryParameters)
 
 	w := httptest.NewRecorder()
 
@@ -281,11 +248,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToXml(t *testing.T) {
 		healthService: healthService,
 	}
 
-	router := chi.NewRouter()
-	router.Route("/", func(r chi.Router) {
-		instance.Routes("", r)
-	})
-
+	router := setupHttpRouter(instance)
 	router.ServeHTTP(w, request)
 
 	actualResult := LivelinessSummaryResponse{}
@@ -305,49 +268,37 @@ func TestLivelinessSummaryWithAcceptHeaderSetToXml(t *testing.T) {
 // ping
 //
 
-func TestPing(t *testing.T) {
-	tests := map[string]struct {
-		acceptHeader string
-		decode       decodeResponseBody
-		path         string
-		queries      map[string]string
-		validate     validateResponse
-	}{
-		"ping-no-header": {
-			acceptHeader: "",
-			decode:       decodeJSONFromResponseBody,
-			path:         "/ping",
-			queries:      make(map[string]string),
-			validate:     validateWithoutAcceptHeader,
-		},
-		"ping-json": {
-			acceptHeader: "application/json",
-			decode:       decodeJSONFromResponseBody,
-			path:         "/ping",
-			queries:      make(map[string]string),
-			validate:     validatePingWithAcceptHeader,
-		},
-		"ping-xml": {
-			acceptHeader: "application/xml",
-			decode:       decodeXMLFromResponseBody,
-			path:         "/ping",
-			queries:      make(map[string]string),
-			validate:     validatePingWithAcceptHeader,
-		},
-	}
+func TestPingyWithAcceptHeaderSetToJson(t *testing.T) {
+	request := setupRequest("/ping", "application/json", make(map[string]string))
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			request := setupRequest(tc.path, tc.acceptHeader, make(map[string]string))
+	w := httptest.NewRecorder()
 
-			w := httptest.NewRecorder()
+	router := setupHttpRouter(&selfRouter{})
+	router.ServeHTTP(w, request)
 
-			router := setupHttpRouter()
-			router.ServeHTTP(w, request)
+	validatePingWithAcceptHeader(t, w, decodeJSONFromResponseBody)
+}
 
-			tc.validate(t, w, tc.decode)
-		})
-	}
+func TestPingyWithAcceptHeaderSetToXml(t *testing.T) {
+	request := setupRequest("/ping", "application/xml", make(map[string]string))
+
+	w := httptest.NewRecorder()
+
+	router := setupHttpRouter(&selfRouter{})
+	router.ServeHTTP(w, request)
+
+	validatePingWithAcceptHeader(t, w, decodeXMLFromResponseBody)
+}
+
+func TestPingWithoutHeader(t *testing.T) {
+	request := setupRequest("/ping", "", make(map[string]string))
+
+	w := httptest.NewRecorder()
+
+	router := setupHttpRouter(&selfRouter{})
+	router.ServeHTTP(w, request)
+
+	validateWithoutAcceptHeader(t, w, decodeJSONFromResponseBody)
 }
 
 // readiness - json
@@ -401,9 +352,7 @@ func createHealthServiceWithChecks(numberOfChecks int) *mockHealthService {
 	return healthService
 }
 
-func setupHttpRouter() *chi.Mux {
-	instance := &selfRouter{}
-
+func setupHttpRouter(instance *selfRouter) *chi.Mux {
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
 		instance.Routes("", r)
