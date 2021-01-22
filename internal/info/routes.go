@@ -1,4 +1,4 @@
-package health
+package info
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/calvinverse/service.provisioning.controller/internal/info"
 	"github.com/calvinverse/service.provisioning.controller/internal/router"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
@@ -95,7 +94,7 @@ func NewSelfAPIRouter() router.APIRouter {
 
 // selfRouter defines an APIRouter that routes the 'self' metadata routes.
 type selfRouter struct {
-	healthService Service
+	healthService HealthReporter
 }
 
 func (h *selfRouter) Prefix() string {
@@ -128,9 +127,9 @@ func (h *selfRouter) Version() int8 {
 // @Router /v1/self/info [get]
 func (h *selfRouter) info(w http.ResponseWriter, r *http.Request) {
 	response := InfoResponse{
-		BuildTime: info.BuildTime(),
-		Revision:  info.Revision(),
-		Version:   info.Version(),
+		BuildTime: BuildTime(),
+		Revision:  Revision(),
+		Version:   Version(),
 	}
 
 	h.responseBody(w, r, http.StatusOK, response)
@@ -151,8 +150,8 @@ func (h *selfRouter) info(w http.ResponseWriter, r *http.Request) {
 func (h *selfRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 	healthStatus, err := h.healthService.Liveliness()
 	if err != nil {
-		healthStatus = Status{
-			Checks:    make([]CheckResult, 0, 0),
+		healthStatus = HealthStatus{
+			Checks:    make([]HealthCheckResult, 0, 0),
 			IsHealthy: false,
 		}
 
@@ -171,7 +170,7 @@ func (h *selfRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.Request, status *Status) {
+func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.Request, status *HealthStatus) {
 	t := time.Now()
 
 	statusText := statusToText(status.IsHealthy)
@@ -198,7 +197,7 @@ func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.R
 	h.responseBody(w, r, responseCode, response)
 }
 
-func (h *selfRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Request, status *Status) {
+func (h *selfRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Request, status *HealthStatus) {
 	t := time.Now()
 
 	statusText := statusToText(status.IsHealthy)

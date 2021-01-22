@@ -1,4 +1,4 @@
-package health
+package info
 
 import (
 	"sync"
@@ -17,31 +17,31 @@ const (
 
 var (
 	once     sync.Once
-	instance Service
+	instance HealthReporter
 )
 
-// Service defines a service that tracks the health of the application.
-type Service interface {
+// HealthReporter defines a service that tracks the health of the application.
+type HealthReporter interface {
 	// Liveliness returns the status indicating if the application is healthy while processing requests.
-	Liveliness() (Status, error)
+	Liveliness() (HealthStatus, error)
 
 	// Readiness returns the status indicating if the application is ready to process requests.
-	Readiness() (Status, error)
+	Readiness() (HealthStatus, error)
 
 	// Add a health check
 }
 
-// Status stores the health status for the application.
-type Status struct {
+// HealthStatus stores the health status for the application.
+type HealthStatus struct {
 	// Checks returns the collection of checks that were executed.
-	Checks []CheckResult
+	Checks []HealthCheckResult
 
 	// IsHealthy returns the health status for the application.
 	IsHealthy bool
 }
 
-// CheckResult stores the results of a health check.
-type CheckResult struct {
+// HealthCheckResult stores the results of a health check.
+type HealthCheckResult struct {
 	// IsSuccess returns the status of the check.
 	IsSuccess bool
 
@@ -53,7 +53,7 @@ type CheckResult struct {
 }
 
 // GetServiceWithDefaultSettings returns a health service with the default settings.
-func GetServiceWithDefaultSettings() Service {
+func GetServiceWithDefaultSettings() HealthReporter {
 	once.Do(func() {
 		instance = &healthReporter{
 			instance: gosundheit.New(),
@@ -64,7 +64,7 @@ func GetServiceWithDefaultSettings() Service {
 }
 
 // GetServiceWithHealthInstance returns a health service with the provided health instance. Note: for testing purposes only!
-func GetServiceWithHealthInstance(healthInstance gosundheit.Health) Service {
+func GetServiceWithHealthInstance(healthInstance gosundheit.Health) HealthReporter {
 	once.Do(func() {
 		instance = &healthReporter{
 			instance: healthInstance,
@@ -78,12 +78,12 @@ type healthReporter struct {
 	instance gosundheit.Health
 }
 
-func (h *healthReporter) Liveliness() (Status, error) {
+func (h *healthReporter) Liveliness() (HealthStatus, error) {
 	// Return the status of the different health checks
-	return Status{}, nil
+	return HealthStatus{}, nil
 }
 
-func (h *healthReporter) Readiness() (Status, error) {
+func (h *healthReporter) Readiness() (HealthStatus, error) {
 	// If all health checks have been registered then we are good
-	return Status{}, nil
+	return HealthStatus{}, nil
 }

@@ -1,4 +1,4 @@
-package health
+package info
 
 import (
 	"bytes"
@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/calvinverse/service.provisioning.controller/internal/info"
 	"github.com/go-chi/chi"
 )
 
@@ -20,15 +19,15 @@ import (
 //
 
 type mockHealthService struct {
-	status Status
+	status HealthStatus
 	error  error
 }
 
-func (h *mockHealthService) Liveliness() (Status, error) {
+func (h *mockHealthService) Liveliness() (HealthStatus, error) {
 	return h.status, h.error
 }
 
-func (h *mockHealthService) Readiness() (Status, error) {
+func (h *mockHealthService) Readiness() (HealthStatus, error) {
 	return h.status, h.error
 }
 
@@ -47,7 +46,7 @@ func TestInfoyWithAcceptHeaderSetToJson(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	router := setupHttpRouter(&selfRouter{})
+	router := setupHTTPRouter(&selfRouter{})
 	router.ServeHTTP(w, request)
 
 	validateInfoWithAcceptHeader(t, w, decodeJSONFromResponseBody)
@@ -58,7 +57,7 @@ func TestInfoyWithAcceptHeaderSetToXml(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	router := setupHttpRouter(&selfRouter{})
+	router := setupHTTPRouter(&selfRouter{})
 	router.ServeHTTP(w, request)
 
 	validateInfoWithAcceptHeader(t, w, decodeXMLFromResponseBody)
@@ -69,7 +68,7 @@ func TestInfoWithoutHeader(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	router := setupHttpRouter(&selfRouter{})
+	router := setupHTTPRouter(&selfRouter{})
 	router.ServeHTTP(w, request)
 
 	validateWithoutAcceptHeader(t, w, decodeJSONFromResponseBody)
@@ -130,7 +129,7 @@ func TestLivelinessWithNoAccept(t *testing.T) {
 		healthService: healthService,
 	}
 
-	router := setupHttpRouter(instance)
+	router := setupHTTPRouter(instance)
 	router.ServeHTTP(w, request)
 
 	validateWithoutAcceptHeader(t, w, decodeJSONFromResponseBody)
@@ -152,7 +151,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToJson(t *testing.T) {
 		healthService: healthService,
 	}
 
-	router := setupHttpRouter(instance)
+	router := setupHTTPRouter(instance)
 	router.ServeHTTP(w, request)
 
 	actualResult := LivelinessDetailedResponse{}
@@ -184,7 +183,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToXml(t *testing.T) {
 		healthService: healthService,
 	}
 
-	router := setupHttpRouter(instance)
+	router := setupHTTPRouter(instance)
 	router.ServeHTTP(w, request)
 
 	actualResult := LivelinessDetailedResponse{}
@@ -216,7 +215,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToJson(t *testing.T) {
 		healthService: healthService,
 	}
 
-	router := setupHttpRouter(instance)
+	router := setupHTTPRouter(instance)
 	router.ServeHTTP(w, request)
 
 	actualResult := LivelinessSummaryResponse{}
@@ -248,7 +247,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToXml(t *testing.T) {
 		healthService: healthService,
 	}
 
-	router := setupHttpRouter(instance)
+	router := setupHTTPRouter(instance)
 	router.ServeHTTP(w, request)
 
 	actualResult := LivelinessSummaryResponse{}
@@ -273,7 +272,7 @@ func TestPingyWithAcceptHeaderSetToJson(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	router := setupHttpRouter(&selfRouter{})
+	router := setupHTTPRouter(&selfRouter{})
 	router.ServeHTTP(w, request)
 
 	validatePingWithAcceptHeader(t, w, decodeJSONFromResponseBody)
@@ -284,7 +283,7 @@ func TestPingyWithAcceptHeaderSetToXml(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	router := setupHttpRouter(&selfRouter{})
+	router := setupHTTPRouter(&selfRouter{})
 	router.ServeHTTP(w, request)
 
 	validatePingWithAcceptHeader(t, w, decodeXMLFromResponseBody)
@@ -295,7 +294,7 @@ func TestPingWithoutHeader(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	router := setupHttpRouter(&selfRouter{})
+	router := setupHTTPRouter(&selfRouter{})
 	router.ServeHTTP(w, request)
 
 	validateWithoutAcceptHeader(t, w, decodeJSONFromResponseBody)
@@ -330,9 +329,9 @@ type validateResponse func(t *testing.T, w *httptest.ResponseRecorder, decode de
 //
 
 func createHealthServiceWithChecks(numberOfChecks int) *mockHealthService {
-	var checks []CheckResult
+	var checks []HealthCheckResult
 	for i := 0; i < numberOfChecks; i++ {
-		check := CheckResult{
+		check := HealthCheckResult{
 			IsSuccess: true,
 			Name:      strconv.Itoa(i),
 			Timestamp: time.Date(2021, time.January, i, i, i, i, 0, time.Local),
@@ -340,7 +339,7 @@ func createHealthServiceWithChecks(numberOfChecks int) *mockHealthService {
 		checks = append(checks, check)
 	}
 
-	status := Status{
+	status := HealthStatus{
 		Checks:    checks,
 		IsHealthy: true,
 	}
@@ -352,7 +351,7 @@ func createHealthServiceWithChecks(numberOfChecks int) *mockHealthService {
 	return healthService
 }
 
-func setupHttpRouter(instance *selfRouter) *chi.Mux {
+func setupHTTPRouter(instance *selfRouter) *chi.Mux {
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
 		instance.Routes("", r)
@@ -401,16 +400,16 @@ func validateInfoWithAcceptHeader(t *testing.T, w *httptest.ResponseRecorder, de
 			http.StatusOK)
 	}
 
-	if actualResult.BuildTime != info.BuildTime() {
-		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.BuildTime, info.BuildTime())
+	if actualResult.BuildTime != BuildTime() {
+		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.BuildTime, BuildTime())
 	}
 
-	if actualResult.Revision != info.Revision() {
-		t.Errorf("Handler returned unexpected revision: got %s wanted %s", actualResult.Revision, info.Revision())
+	if actualResult.Revision != Revision() {
+		t.Errorf("Handler returned unexpected revision: got %s wanted %s", actualResult.Revision, Revision())
 	}
 
-	if actualResult.Version != info.Version() {
-		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.Version, info.Version())
+	if actualResult.Version != Version() {
+		t.Errorf("Handler returned unexpected build time: got %s wanted %s", actualResult.Version, Version())
 	}
 }
 
