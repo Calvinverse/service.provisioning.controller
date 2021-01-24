@@ -19,16 +19,22 @@ import (
 //
 
 type mockHealthService struct {
-	status HealthStatus
-	error  error
+	liveliness *HealthStatus
+	readiness  *HealthStatus
+	started    *StartedStatus
+	error      error
 }
 
-func (h *mockHealthService) Liveliness() (HealthStatus, error) {
-	return h.status, h.error
+func (h *mockHealthService) Liveliness() (*HealthStatus, error) {
+	return h.liveliness, h.error
 }
 
-func (h *mockHealthService) Readiness() (HealthStatus, error) {
-	return h.status, h.error
+func (h *mockHealthService) Readiness() (*HealthStatus, error) {
+	return h.readiness, h.error
+}
+
+func (h *mockHealthService) Started() (*StartedStatus, error) {
+	return h.started, nil
 }
 
 type mockError struct{}
@@ -98,7 +104,7 @@ func TestLivelinessWithFailingHealthAndHeaderSetToJson(t *testing.T) {
 
 	router.ServeHTTP(w, request)
 
-	actualResult := LivelinessSummaryResponse{}
+	actualResult := livelinessSummaryResponse{}
 	json.NewDecoder(w.Body).Decode(&actualResult)
 
 	if status := w.Code; status != http.StatusInternalServerError {
@@ -146,7 +152,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToJson(t *testing.T) {
 
 	numberOfChecks := 2
 
-	healthService := createHealthServiceWithChecks(numberOfChecks)
+	healthService := createHealthServiceWithChecks(numberOfChecks, 0)
 	instance := &selfRouter{
 		healthService: healthService,
 	}
@@ -154,7 +160,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToJson(t *testing.T) {
 	router := setupHTTPRouter(instance)
 	router.ServeHTTP(w, request)
 
-	actualResult := LivelinessDetailedResponse{}
+	actualResult := livelinessDetailedResponse{}
 	json.NewDecoder(w.Body).Decode(&actualResult)
 
 	if status := w.Code; status != http.StatusOK {
@@ -178,7 +184,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToXml(t *testing.T) {
 
 	numberOfChecks := 2
 
-	healthService := createHealthServiceWithChecks(numberOfChecks)
+	healthService := createHealthServiceWithChecks(numberOfChecks, 0)
 	instance := &selfRouter{
 		healthService: healthService,
 	}
@@ -186,7 +192,7 @@ func TestLivelinessDetailedWithAcceptHeaderSetToXml(t *testing.T) {
 	router := setupHTTPRouter(instance)
 	router.ServeHTTP(w, request)
 
-	actualResult := LivelinessDetailedResponse{}
+	actualResult := livelinessDetailedResponse{}
 	xml.NewDecoder(w.Body).Decode(&actualResult)
 
 	if status := w.Code; status != http.StatusOK {
@@ -210,7 +216,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToJson(t *testing.T) {
 
 	numberOfChecks := 2
 
-	healthService := createHealthServiceWithChecks(numberOfChecks)
+	healthService := createHealthServiceWithChecks(numberOfChecks, 0)
 	instance := &selfRouter{
 		healthService: healthService,
 	}
@@ -218,7 +224,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToJson(t *testing.T) {
 	router := setupHTTPRouter(instance)
 	router.ServeHTTP(w, request)
 
-	actualResult := LivelinessSummaryResponse{}
+	actualResult := livelinessSummaryResponse{}
 	json.NewDecoder(w.Body).Decode(&actualResult)
 
 	if status := w.Code; status != http.StatusOK {
@@ -242,7 +248,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToXml(t *testing.T) {
 
 	numberOfChecks := 2
 
-	healthService := createHealthServiceWithChecks(numberOfChecks)
+	healthService := createHealthServiceWithChecks(numberOfChecks, 0)
 	instance := &selfRouter{
 		healthService: healthService,
 	}
@@ -250,7 +256,7 @@ func TestLivelinessSummaryWithAcceptHeaderSetToXml(t *testing.T) {
 	router := setupHTTPRouter(instance)
 	router.ServeHTTP(w, request)
 
-	actualResult := LivelinessSummaryResponse{}
+	actualResult := livelinessSummaryResponse{}
 	xml.NewDecoder(w.Body).Decode(&actualResult)
 
 	if status := w.Code; status != http.StatusOK {
@@ -300,9 +306,83 @@ func TestPingWithoutHeader(t *testing.T) {
 	validateWithoutAcceptHeader(t, w, decodeJSONFromResponseBody)
 }
 
-// readiness - json
-// readiness - xml
-// readiness - no-accept
+//
+// readiness
+//
+
+func TestReadinessWithAcceptHeaderSetToJson(t *testing.T) {
+	request := setupRequest("/readiness", "application/json", make(map[string]string))
+
+	w := httptest.NewRecorder()
+
+	numberOfChecks := 2
+
+	healthService := createHealthServiceWithChecks(0, numberOfChecks)
+	instance := &selfRouter{
+		healthService: healthService,
+	}
+
+	router := setupHTTPRouter(instance)
+	router.ServeHTTP(w, request)
+
+	actualResult := readinessResponse{}
+	json.NewDecoder(w.Body).Decode(&actualResult)
+
+	if status := w.Code; status != http.StatusOK {
+		t.Errorf(
+			"handler returned wrong status code: got %v want %v",
+			status,
+			http.StatusOK)
+	}
+
+	validateReadinessResponse(t, numberOfChecks, actualResult)
+}
+
+func TestReadinessWithAcceptHeaderSetToXml(t *testing.T) {
+	request := setupRequest("/readiness", "application/xml", make(map[string]string))
+
+	w := httptest.NewRecorder()
+
+	numberOfChecks := 2
+
+	healthService := createHealthServiceWithChecks(0, numberOfChecks)
+	instance := &selfRouter{
+		healthService: healthService,
+	}
+
+	router := setupHTTPRouter(instance)
+	router.ServeHTTP(w, request)
+
+	actualResult := readinessResponse{}
+	xml.NewDecoder(w.Body).Decode(&actualResult)
+
+	if status := w.Code; status != http.StatusOK {
+		t.Errorf(
+			"handler returned wrong status code: got %v want %v",
+			status,
+			http.StatusOK)
+	}
+
+	validateReadinessResponse(t, numberOfChecks, actualResult)
+}
+
+func TestReadinessWithNoAccept(t *testing.T) {
+	request := setupRequest("/readiness", "", make(map[string]string))
+
+	w := httptest.NewRecorder()
+
+	healthService := &mockHealthService{
+		error: &mockError{},
+	}
+	instance := &selfRouter{
+		healthService: healthService,
+	}
+
+	router := setupHTTPRouter(instance)
+	router.ServeHTTP(w, request)
+
+	validateWithoutAcceptHeader(t, w, decodeJSONFromResponseBody)
+}
 
 // started - json
 // started - xml
@@ -328,7 +408,19 @@ type validateResponse func(t *testing.T, w *httptest.ResponseRecorder, decode de
 // Setup functions
 //
 
-func createHealthServiceWithChecks(numberOfChecks int) *mockHealthService {
+func createHealthServiceWithChecks(numberOfLivelinessChecks int, numberOfReadinessChecks int) *mockHealthService {
+	livelinessStatus := createLivelinessStatus(numberOfLivelinessChecks)
+	readinessStatus := createReadinessStatus(numberOfReadinessChecks)
+
+	healthService := &mockHealthService{
+		liveliness: livelinessStatus,
+		readiness:  readinessStatus,
+		error:      nil,
+	}
+	return healthService
+}
+
+func createLivelinessStatus(numberOfChecks int) *HealthStatus {
 	var checks []HealthCheckResult
 	for i := 0; i < numberOfChecks; i++ {
 		check := HealthCheckResult{
@@ -339,16 +431,29 @@ func createHealthServiceWithChecks(numberOfChecks int) *mockHealthService {
 		checks = append(checks, check)
 	}
 
-	status := HealthStatus{
+	status := &HealthStatus{
 		Checks:    checks,
 		IsHealthy: true,
 	}
+	return status
+}
 
-	healthService := &mockHealthService{
-		status: status,
-		error:  nil,
+func createReadinessStatus(numberOfChecks int) *HealthStatus {
+	var checks []HealthCheckResult
+	for i := 0; i < numberOfChecks; i++ {
+		check := HealthCheckResult{
+			IsSuccess: true,
+			Name:      strconv.Itoa(i),
+			Timestamp: time.Date(2021, time.January, i, i, i, i, 0, time.Local),
+		}
+		checks = append(checks, check)
 	}
-	return healthService
+
+	status := &HealthStatus{
+		Checks:    checks,
+		IsHealthy: true,
+	}
+	return status
 }
 
 func setupHTTPRouter(instance *selfRouter) *chi.Mux {
@@ -390,7 +495,7 @@ func validateWithoutAcceptHeader(t *testing.T, w *httptest.ResponseRecorder, dec
 }
 
 func validateInfoWithAcceptHeader(t *testing.T, w *httptest.ResponseRecorder, decode decodeResponseBody) {
-	actualResult := InfoResponse{}
+	actualResult := infoResponse{}
 	decode(w.Body, &actualResult)
 
 	if status := w.Code; status != http.StatusOK {
@@ -414,7 +519,7 @@ func validateInfoWithAcceptHeader(t *testing.T, w *httptest.ResponseRecorder, de
 }
 
 func validatePingWithAcceptHeader(t *testing.T, w *httptest.ResponseRecorder, decode decodeResponseBody) {
-	actualResult := PingResponse{}
+	actualResult := pingResponse{}
 	decode(w.Body, &actualResult)
 
 	if status := w.Code; status != http.StatusOK {
@@ -429,7 +534,7 @@ func validatePingWithAcceptHeader(t *testing.T, w *httptest.ResponseRecorder, de
 	}
 }
 
-func validateLivelinessDetailedResponse(t *testing.T, expectedNumberOfChecks int, result LivelinessDetailedResponse) {
+func validateLivelinessDetailedResponse(t *testing.T, expectedNumberOfChecks int, result livelinessDetailedResponse) {
 	if result.Status != Success {
 		t.Errorf("Handler returned unexpected status: got %s wanted %s", result.Status, Success)
 	}
@@ -459,7 +564,29 @@ func validateLivelinessDetailedResponse(t *testing.T, expectedNumberOfChecks int
 	}
 }
 
-func validateLivelinessSummaryResponse(t *testing.T, expectedNumberOfChecks int, result LivelinessSummaryResponse) {
+func validateLivelinessSummaryResponse(t *testing.T, expectedNumberOfChecks int, result livelinessSummaryResponse) {
+	if result.Status != Success {
+		t.Errorf("Handler returned unexpected status: got %s wanted %s", result.Status, Success)
+	}
+
+	if len(result.Checks) != expectedNumberOfChecks {
+		t.Errorf("Handler returned unexpected number of checks: got %d wanted %d", len(result.Checks), expectedNumberOfChecks)
+	}
+
+	for i, k := range result.Checks {
+
+		expectedName := strconv.Itoa(i)
+		if k.Name != expectedName {
+			t.Errorf("Check has an unexpected name: got %s wanted %s", k.Name, expectedName)
+		}
+
+		if k.Status != Success {
+			t.Errorf("Check had an unexpected status. Expected Success got %s", k.Status)
+		}
+	}
+}
+
+func validateReadinessResponse(t *testing.T, expectedNumberOfChecks int, result readinessResponse) {
 	if result.Status != Success {
 		t.Errorf("Handler returned unexpected status: got %s wanted %s", result.Status, Success)
 	}

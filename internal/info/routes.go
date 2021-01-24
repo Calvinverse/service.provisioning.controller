@@ -14,7 +14,7 @@ import (
 )
 
 // DetailedCheckInformation stores information about the status of a health check.
-type DetailedCheckInformation struct {
+type detailedCheckInformation struct {
 	// Name returns the name of the health check.
 	Name string `json:"name"`
 
@@ -26,7 +26,7 @@ type DetailedCheckInformation struct {
 }
 
 // InfoResponse stores the response to an info request
-type InfoResponse struct {
+type infoResponse struct {
 	// BuildTime stores the date and time the application was built.
 	BuildTime string `json:"buildtime"`
 
@@ -38,46 +38,53 @@ type InfoResponse struct {
 }
 
 // LivelinessDetailedResponse stores detailed information about the liveliness of the application, indicating if the application is healthy
-type LivelinessDetailedResponse struct {
+type livelinessDetailedResponse struct {
 	// Status of all the health checks
-	Checks []DetailedCheckInformation `json:"checks"`
+	Checks []detailedCheckInformation `json:"checks"`
 
 	// Global status
 	Status string `json:"status"`
 
-	// Time the liveliness response was created at
-	Time string `json:"time"`
+	// Timestamp the liveliness response was created at
+	Timestamp string `json:"time"`
 }
 
 // LivelinessSummaryResponse stores condensed information about the liveliness of the application, indicating if the application is healthy
-type LivelinessSummaryResponse struct {
+type livelinessSummaryResponse struct {
 	// Status of all health checks
-	Checks []SummaryCheckInformation `json:"checks"`
+	Checks []summaryCheckInformation `json:"checks"`
 
 	// Global status
 	Status string `json:"status"`
 
-	// Time the liveliness response was created at
-	Time string `json:"time"`
+	// Timestamp the liveliness response was created at
+	Timestamp string `json:"time"`
 }
 
 // PingResponse stores the response to a Ping request
-type PingResponse struct {
+type pingResponse struct {
 	Response string `json:"response"`
 }
 
 // ReadinessResponse stores information about the readiness of the application, indicating whether the application is ready to serve responses.
-type ReadinessResponse struct {
-	Time string `json:"time"`
+type readinessResponse struct {
+	// Status of all health checks
+	Checks []summaryCheckInformation `json:"checks"`
+
+	// Status returns the status of the readiness check, either success or failure.
+	Status string `json:"status"`
+
+	// Timestamp returns the timestamp at which the last readiness check was executed.
+	Timestamp string `json:"time"`
 }
 
 // StartedResponse stores information about the starting state of the application, indicating whether the application has started successfully.
-type StartedResponse struct {
-	Time string `json:"time"`
+type startedResponse struct {
+	Timestamp string `json:"time"`
 }
 
 // SummaryCheckInformation stores the minimal information about the status of a health check.
-type SummaryCheckInformation struct {
+type summaryCheckInformation struct {
 	// Name returns the name of the health check.
 	Name string `json:"name"`
 
@@ -94,7 +101,7 @@ func NewSelfAPIRouter() router.APIRouter {
 
 // selfRouter defines an APIRouter that routes the 'self' metadata routes.
 type selfRouter struct {
-	healthService HealthReporter
+	healthService StatusReporter
 }
 
 func (h *selfRouter) Prefix() string {
@@ -126,7 +133,7 @@ func (h *selfRouter) Version() int8 {
 // @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/info [get]
 func (h *selfRouter) info(w http.ResponseWriter, r *http.Request) {
-	response := InfoResponse{
+	response := infoResponse{
 		BuildTime: BuildTime(),
 		Revision:  Revision(),
 		Version:   Version(),
@@ -150,23 +157,23 @@ func (h *selfRouter) info(w http.ResponseWriter, r *http.Request) {
 func (h *selfRouter) liveliness(w http.ResponseWriter, r *http.Request) {
 	healthStatus, err := h.healthService.Liveliness()
 	if err != nil {
-		healthStatus = HealthStatus{
+		healthStatus = &HealthStatus{
 			Checks:    make([]HealthCheckResult, 0, 0),
 			IsHealthy: false,
 		}
 
-		h.livelinessSummaryResponse(w, r, &healthStatus)
+		h.livelinessSummaryResponse(w, r, healthStatus)
 		return
 	}
 
 	responseType := r.URL.Query().Get("type")
 	switch responseType {
 	case "detailed":
-		h.livelinessDetailedResponse(w, r, &healthStatus)
+		h.livelinessDetailedResponse(w, r, healthStatus)
 	case "summary":
 		fallthrough
 	default:
-		h.livelinessSummaryResponse(w, r, &healthStatus)
+		h.livelinessSummaryResponse(w, r, healthStatus)
 	}
 }
 
@@ -176,11 +183,11 @@ func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.R
 	statusText := statusToText(status.IsHealthy)
 	responseCode := statusToResponseCode(status.IsHealthy)
 
-	var checkResults []DetailedCheckInformation
-	checkResults = make([]DetailedCheckInformation, 0, len(status.Checks))
+	var checkResults []detailedCheckInformation
+	checkResults = make([]detailedCheckInformation, 0, len(status.Checks))
 	for _, check := range status.Checks {
 
-		result := DetailedCheckInformation{
+		result := detailedCheckInformation{
 			Name:      check.Name,
 			Status:    statusToText(check.IsSuccess),
 			Timestamp: check.Timestamp.Format(time.RFC3339),
@@ -188,10 +195,10 @@ func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.R
 		checkResults = append(checkResults, result)
 	}
 
-	response := &LivelinessDetailedResponse{
-		Checks: checkResults,
-		Status: statusText,
-		Time:   t.Format(time.RFC3339),
+	response := &livelinessDetailedResponse{
+		Checks:    checkResults,
+		Status:    statusText,
+		Timestamp: t.Format(time.RFC3339),
 	}
 
 	h.responseBody(w, r, responseCode, response)
@@ -203,21 +210,21 @@ func (h *selfRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Re
 	statusText := statusToText(status.IsHealthy)
 	responseCode := statusToResponseCode(status.IsHealthy)
 
-	var checkResults []SummaryCheckInformation
-	checkResults = make([]SummaryCheckInformation, 0, len(status.Checks))
+	var checkResults []summaryCheckInformation
+	checkResults = make([]summaryCheckInformation, 0, len(status.Checks))
 	for _, check := range status.Checks {
 
-		result := SummaryCheckInformation{
+		result := summaryCheckInformation{
 			Name:   check.Name,
 			Status: statusToText(check.IsSuccess),
 		}
 		checkResults = append(checkResults, result)
 	}
 
-	response := &LivelinessSummaryResponse{
-		Checks: checkResults,
-		Status: statusText,
-		Time:   t.Format(time.RFC3339),
+	response := &livelinessSummaryResponse{
+		Checks:    checkResults,
+		Status:    statusText,
+		Timestamp: t.Format(time.RFC3339),
 	}
 
 	h.responseBody(w, r, responseCode, response)
@@ -237,7 +244,7 @@ func (h *selfRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Re
 func (h *selfRouter) ping(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()
 
-	response := PingResponse{
+	response := pingResponse{
 		Response: fmt.Sprint("Pong - ", t.Format(time.RFC3339)),
 	}
 
@@ -255,7 +262,41 @@ func (h *selfRouter) ping(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} health.ReadinessResponse
 // @Router /v1/self/readiness [get]
 func (h *selfRouter) readiness(w http.ResponseWriter, r *http.Request) {
-	render.Status(r, http.StatusNotImplemented)
+	healthStatus, err := h.healthService.Readiness()
+	if err != nil {
+		healthStatus = &HealthStatus{
+			Checks:    make([]HealthCheckResult, 0, 0),
+			IsHealthy: false,
+		}
+	}
+
+	h.readinessResponse(w, r, healthStatus)
+}
+
+func (h *selfRouter) readinessResponse(w http.ResponseWriter, r *http.Request, status *HealthStatus) {
+	t := time.Now()
+
+	statusText := statusToText(status.IsHealthy)
+	responseCode := statusToResponseCode(status.IsHealthy)
+
+	var checkResults []summaryCheckInformation
+	checkResults = make([]summaryCheckInformation, 0, len(status.Checks))
+	for _, check := range status.Checks {
+
+		result := summaryCheckInformation{
+			Name:   check.Name,
+			Status: statusToText(check.IsSuccess),
+		}
+		checkResults = append(checkResults, result)
+	}
+
+	response := &readinessResponse{
+		Checks:    checkResults,
+		Status:    statusText,
+		Timestamp: t.Format(time.RFC3339),
+	}
+
+	h.responseBody(w, r, responseCode, response)
 }
 
 // Started godoc

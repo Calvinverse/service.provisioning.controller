@@ -17,18 +17,25 @@ const (
 
 var (
 	once     sync.Once
-	instance HealthReporter
+	instance StatusReporter
 )
 
-// HealthReporter defines a service that tracks the health of the application.
-type HealthReporter interface {
+// StatusReporter defines a service that tracks the health of the application.
+type StatusReporter interface {
 	// Liveliness returns the status indicating if the application is healthy while processing requests.
-	Liveliness() (HealthStatus, error)
+	Liveliness() (*HealthStatus, error)
 
 	// Readiness returns the status indicating if the application is ready to process requests.
-	Readiness() (HealthStatus, error)
+	Readiness() (*HealthStatus, error)
 
+	// Started returns the information about the start of the application.
+	Started() (*StartedStatus, error)
+}
+
+type HealthCenter interface {
 	// Add a health check
+	// Add a readiness check
+	// Add a started check
 }
 
 // HealthStatus stores the health status for the application.
@@ -52,8 +59,14 @@ type HealthCheckResult struct {
 	Timestamp time.Time
 }
 
+// StartedStatus stores the application start information.
+type StartedStatus struct {
+	// The time the application was started.
+	Timestamp time.Time
+}
+
 // GetServiceWithDefaultSettings returns a health service with the default settings.
-func GetServiceWithDefaultSettings() HealthReporter {
+func GetServiceWithDefaultSettings() StatusReporter {
 	once.Do(func() {
 		instance = &healthReporter{
 			instance: gosundheit.New(),
@@ -64,7 +77,7 @@ func GetServiceWithDefaultSettings() HealthReporter {
 }
 
 // GetServiceWithHealthInstance returns a health service with the provided health instance. Note: for testing purposes only!
-func GetServiceWithHealthInstance(healthInstance gosundheit.Health) HealthReporter {
+func GetServiceWithHealthInstance(healthInstance gosundheit.Health) StatusReporter {
 	once.Do(func() {
 		instance = &healthReporter{
 			instance: healthInstance,
@@ -78,12 +91,34 @@ type healthReporter struct {
 	instance gosundheit.Health
 }
 
-func (h *healthReporter) Liveliness() (HealthStatus, error) {
+func (h *healthReporter) Liveliness() (*HealthStatus, error) {
+	checkResults, healthy := h.instance.Results()
+
+	var checks []HealthCheckResult
+	checks = make([]HealthCheckResult, 0, len(checkResults))
+	for name, check := range checkResults {
+		checkResult := HealthCheckResult{
+			IsSuccess: check.IsHealthy(),
+			Name:      name,
+			Timestamp: check.Timestamp,
+		}
+
+		checks = append(checks, checkResult)
+	}
+
 	// Return the status of the different health checks
-	return HealthStatus{}, nil
+	result := &HealthStatus{
+		Checks:    checks,
+		IsHealthy: healthy,
+	}
+	return result, nil
 }
 
-func (h *healthReporter) Readiness() (HealthStatus, error) {
+func (h *healthReporter) Readiness() (*HealthStatus, error) {
 	// If all health checks have been registered then we are good
-	return HealthStatus{}, nil
+	return &HealthStatus{}, nil
+}
+
+func (h *healthReporter) Started() (*StartedStatus, error) {
+	return &StartedStatus{}, nil
 }
