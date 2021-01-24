@@ -34,7 +34,7 @@ func (h *mockHealthService) Readiness() (*HealthStatus, error) {
 }
 
 func (h *mockHealthService) Started() (*StartedStatus, error) {
-	return h.started, nil
+	return h.started, h.error
 }
 
 type mockError struct{}
@@ -384,9 +384,83 @@ func TestReadinessWithNoAccept(t *testing.T) {
 	validateWithoutAcceptHeader(t, w, decodeJSONFromResponseBody)
 }
 
-// started - json
-// started - xml
-// started - no-accept
+//
+// started
+//
+
+func TestStartedWithAcceptHeaderSetToJson(t *testing.T) {
+	request := setupRequest("/started", "application/json", make(map[string]string))
+
+	w := httptest.NewRecorder()
+
+	numberOfChecks := 2
+
+	healthService := createHealthServiceWithChecks(0, numberOfChecks)
+	instance := &selfRouter{
+		healthService: healthService,
+	}
+
+	router := setupHTTPRouter(instance)
+	router.ServeHTTP(w, request)
+
+	actualResult := startedResponse{}
+	json.NewDecoder(w.Body).Decode(&actualResult)
+
+	if status := w.Code; status != http.StatusOK {
+		t.Errorf(
+			"handler returned wrong status code: got %v want %v",
+			status,
+			http.StatusOK)
+	}
+
+	validateStartedResponse(t, actualResult)
+}
+
+func TestStartedWithAcceptHeaderSetToXml(t *testing.T) {
+	request := setupRequest("/started", "application/xml", make(map[string]string))
+
+	w := httptest.NewRecorder()
+
+	numberOfChecks := 2
+
+	healthService := createHealthServiceWithChecks(0, numberOfChecks)
+	instance := &selfRouter{
+		healthService: healthService,
+	}
+
+	router := setupHTTPRouter(instance)
+	router.ServeHTTP(w, request)
+
+	actualResult := startedResponse{}
+	xml.NewDecoder(w.Body).Decode(&actualResult)
+
+	if status := w.Code; status != http.StatusOK {
+		t.Errorf(
+			"handler returned wrong status code: got %v want %v",
+			status,
+			http.StatusOK)
+	}
+
+	validateStartedResponse(t, actualResult)
+}
+
+func TestStartedWithNoAccept(t *testing.T) {
+	request := setupRequest("/started", "", make(map[string]string))
+
+	w := httptest.NewRecorder()
+
+	healthService := &mockHealthService{
+		error: &mockError{},
+	}
+	instance := &selfRouter{
+		healthService: healthService,
+	}
+
+	router := setupHTTPRouter(instance)
+	router.ServeHTTP(w, request)
+
+	validateWithoutAcceptHeader(t, w, decodeJSONFromResponseBody)
+}
 
 //
 // Helper functions
@@ -411,10 +485,14 @@ type validateResponse func(t *testing.T, w *httptest.ResponseRecorder, decode de
 func createHealthServiceWithChecks(numberOfLivelinessChecks int, numberOfReadinessChecks int) *mockHealthService {
 	livelinessStatus := createLivelinessStatus(numberOfLivelinessChecks)
 	readinessStatus := createReadinessStatus(numberOfReadinessChecks)
+	startedStatus := &StartedStatus{
+		Timestamp: time.Date(2021, time.January, 1, 1, 1, 1, 0, time.Local),
+	}
 
 	healthService := &mockHealthService{
 		liveliness: livelinessStatus,
 		readiness:  readinessStatus,
+		started:    startedStatus,
 		error:      nil,
 	}
 	return healthService
@@ -605,5 +683,17 @@ func validateReadinessResponse(t *testing.T, expectedNumberOfChecks int, result 
 		if k.Status != Success {
 			t.Errorf("Check had an unexpected status. Expected Success got %s", k.Status)
 		}
+	}
+}
+
+func validateStartedResponse(t *testing.T, result startedResponse) {
+	parsedTime, err := time.Parse(time.RFC3339, result.Timestamp)
+	if err != nil {
+		t.Errorf("Check contained a timestamp that was not parsable. Got %s", result.Timestamp)
+	}
+
+	expectedTime := time.Date(2021, time.January, 1, 1, 1, 1, 0, time.Local)
+	if parsedTime != expectedTime {
+		t.Errorf("Check had an unexpected timestamp. Got %s wanted %s", result.Timestamp, expectedTime.Format(time.RFC3339))
 	}
 }

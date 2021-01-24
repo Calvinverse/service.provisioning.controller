@@ -310,7 +310,21 @@ func (h *selfRouter) readinessResponse(w http.ResponseWriter, r *http.Request, s
 // @Success 200 {object} health.StartedResponse
 // @Router /v1/self/started [get]
 func (h *selfRouter) started(w http.ResponseWriter, r *http.Request) {
-	render.Status(r, http.StatusNotImplemented)
+	t := time.Now()
+
+	healthStatus, err := h.healthService.Started()
+	if err != nil {
+		body := &startedResponse{
+			Timestamp: t.Format(time.RFC3339),
+		}
+		h.responseBody(w, r, http.StatusServiceUnavailable, body)
+		return
+	}
+
+	body := &startedResponse{
+		Timestamp: healthStatus.Timestamp.Format(time.RFC3339),
+	}
+	h.responseBody(w, r, http.StatusOK, body)
 }
 
 func (h *selfRouter) responseBody(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
