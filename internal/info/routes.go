@@ -95,7 +95,7 @@ type summaryCheckInformation struct {
 // NewSelfAPIRouter returns an APIRouter instance for the health routes.
 func NewSelfAPIRouter() router.APIRouter {
 	return &selfRouter{
-		healthService: GetServiceWithDefaultSettings(),
+		healthService: GetStatusReporter(),
 	}
 }
 
