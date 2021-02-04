@@ -1,10 +1,14 @@
 package info
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	gosundheit "github.com/AppsFlyer/go-sundheit"
+	"github.com/AppsFlyer/go-sundheit/checks"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -17,7 +21,7 @@ const (
 
 var (
 	once     sync.Once
-	instance StatusReporter
+	instance *healthReporter
 )
 
 // StatusReporter defines a service that tracks the health of the application.
@@ -32,8 +36,11 @@ type StatusReporter interface {
 	Started() (*StartedStatus, error)
 }
 
+// HealthCenter defines a service which allows different health checks to be registered for monitoring.
 type HealthCenter interface {
 	// Add a health check
+	RegisterLivelinessCheck(check checks.Check, executionPeriod time.Duration, initialDelay time.Duration, initiallyPassing bool) error
+
 	// Add a readiness check
 	// Add a started check
 }
@@ -65,26 +72,37 @@ type StartedStatus struct {
 	Timestamp time.Time
 }
 
-// GetServiceWithDefaultSettings returns a health service with the default settings.
-func GetServiceWithDefaultSettings() StatusReporter {
+// GetStatusReporter returns a health status reporter which reports on the status of the application.
+func GetStatusReporter() StatusReporter {
 	once.Do(func() {
-		instance = &healthReporter{
-			instance: gosundheit.New(),
+		if instance == nil {
+			instance = &healthReporter{
+				instance: gosundheit.New(),
+			}
 		}
 	})
 
 	return instance
 }
 
-// GetServiceWithHealthInstance returns a health service with the provided health instance. Note: for testing purposes only!
-func GetServiceWithHealthInstance(healthInstance gosundheit.Health) StatusReporter {
+// GetHealthCenter returns a HealthCenter instance that can be used to register health checks.
+func GetHealthCenter() HealthCenter {
 	once.Do(func() {
-		instance = &healthReporter{
-			instance: healthInstance,
+		if instance == nil {
+			instance = &healthReporter{
+				instance: gosundheit.New(),
+			}
 		}
 	})
 
 	return instance
+}
+
+// setHealthInstanceForTesting sets a status reporter with the provided health instance for testing purposes.
+func setHealthInstanceForTesting(healthInstance gosundheit.Health) {
+	instance = &healthReporter{
+		instance: healthInstance,
+	}
 }
 
 type healthReporter struct {
@@ -117,6 +135,27 @@ func (h *healthReporter) Liveliness() (*HealthStatus, error) {
 func (h *healthReporter) Readiness() (*HealthStatus, error) {
 	// If all health checks have been registered then we are good
 	return &HealthStatus{}, nil
+}
+
+func (h *healthReporter) RegisterLivelinessCheck(check checks.Check, executionPeriod time.Duration, initialDelay time.Duration, initiallyPassing bool) error {
+	err := h.instance.RegisterCheck(&gosundheit.Config{
+		Check:            check,
+		ExecutionPeriod:  executionPeriod,
+		InitialDelay:     initialDelay,
+		InitiallyPassing: initiallyPassing,
+	})
+
+	if err != nil {
+		log.Error(
+			fmt.Sprintf(
+				"Failed to register a liveliness check with name %s. Error was %v",
+				check.Name(),
+				err))
+
+		return err
+	}
+
+	return nil
 }
 
 func (h *healthReporter) Started() (*StartedStatus, error) {
