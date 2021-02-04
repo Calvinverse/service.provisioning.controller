@@ -47,7 +47,7 @@ func (e *mockError) Error() string {
 // Info
 //
 
-func TestInfoyWithAcceptHeaderSetToJson(t *testing.T) {
+func TestInfoWithAcceptHeaderSetToJson(t *testing.T) {
 	request := setupRequest("/info", "application/json", make(map[string]string))
 
 	w := httptest.NewRecorder()
@@ -58,7 +58,7 @@ func TestInfoyWithAcceptHeaderSetToJson(t *testing.T) {
 	validateInfoWithAcceptHeader(t, w, decodeJSONFromResponseBody)
 }
 
-func TestInfoyWithAcceptHeaderSetToXml(t *testing.T) {
+func TestInfoWithAcceptHeaderSetToXml(t *testing.T) {
 	request := setupRequest("/info", "application/xml", make(map[string]string))
 
 	w := httptest.NewRecorder()
