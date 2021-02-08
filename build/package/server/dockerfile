@@ -19,8 +19,8 @@ COPY cmd/ ./cmd
 
 RUN go mod download
 
-RUN go get github.com/swaggo/swag/cmd/swag && \
-  swag init --parseInternal --output ./api --generalInfo ./internal/cmd/serve.go
+RUN go get github.com/swaggo/swag/cmd/swag@v1.6.7
+RUN swag init --parseInternal --output ./api --generalInfo ./internal/cmd/serve.go 2>&1 > /app/swag.log || echo "Documentation failed to build!"
 
 RUN CGO_ENABLED=0\
   GOOS=linux\
