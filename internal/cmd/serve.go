@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/calvinverse/service.provisioning.controller/internal/config"
+	info "github.com/calvinverse/service.provisioning.controller/internal/info"
 	"github.com/calvinverse/service.provisioning.controller/internal/router"
 )
 
@@ -73,7 +75,7 @@ type serveCommandBuilder struct {
 	builder router.Builder
 }
 
-func (s serveCommandBuilder) New() *cobra.Command {
+func (s *serveCommandBuilder) New() *cobra.Command {
 	return &cobra.Command{
 		Use:   "server",
 		Short: "Runs the application as a server",
@@ -82,7 +84,21 @@ func (s serveCommandBuilder) New() *cobra.Command {
 	}
 }
 
-func (s serveCommandBuilder) executeServer(cmd *cobra.Command, args []string) error {
+func (s *serveCommandBuilder) configureHealthCheck() error {
+	check := ServeLivelinessCheck()
+
+	center := info.GetHealthCenter()
+	err := center.RegisterLivelinessCheck(
+		check,
+		30*time.Second,
+		5*time.Second,
+		false,
+	)
+
+	return err
+}
+
+func (s *serveCommandBuilder) createRouter() (*chi.Mux, error) {
 	router := s.builder.New()
 
 	walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
@@ -92,11 +108,25 @@ func (s serveCommandBuilder) executeServer(cmd *cobra.Command, args []string) er
 
 	if err := chi.Walk(router, walkFunc); err != nil {
 		log.Panicf("Logging error: %s\n", err.Error())
+		return nil, err
+	}
+	return router, nil
+}
+
+func (s *serveCommandBuilder) executeServer(cmd *cobra.Command, args []string) error {
+	router, err := s.createRouter()
+	if err != nil {
+		log.Fatal(err)
 		return err
 	}
 
-	port := s.cfg.GetInt("service.port")
-	hostAddress := fmt.Sprintf(":%d", port)
+	err = s.configureHealthCheck()
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	hostAddress := s.getHostAddress()
 	log.Debug(
 		fmt.Sprintf(
 			"Starting server on %s",
@@ -107,4 +137,10 @@ func (s serveCommandBuilder) executeServer(cmd *cobra.Command, args []string) er
 	}
 
 	return nil
+}
+
+func (s *serveCommandBuilder) getHostAddress() string {
+	port := s.cfg.GetInt("service.port")
+	hostAddress := fmt.Sprintf(":%d", port)
+	return hostAddress
 }
