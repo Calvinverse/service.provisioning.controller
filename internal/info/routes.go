@@ -15,6 +15,9 @@ import (
 
 // DetailedCheckInformation stores information about the status of a health check.
 type detailedCheckInformation struct {
+	// Description returns the description of the health check status.
+	Description string `json:"description"`
+
 	// Name returns the name of the health check.
 	Name string `json:"name"`
 
@@ -188,9 +191,10 @@ func (h *selfRouter) livelinessDetailedResponse(w http.ResponseWriter, r *http.R
 	for _, check := range status.Checks {
 
 		result := detailedCheckInformation{
-			Name:      check.Name,
-			Status:    statusToText(check.IsSuccess),
-			Timestamp: check.Timestamp.Format(time.RFC3339),
+			Description: check.Description,
+			Name:        check.Name,
+			Status:      statusToText(check.IsSuccess),
+			Timestamp:   check.Timestamp.Format(time.RFC3339),
 		}
 		checkResults = append(checkResults, result)
 	}

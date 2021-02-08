@@ -56,6 +56,9 @@ type HealthStatus struct {
 
 // HealthCheckResult stores the results of a health check.
 type HealthCheckResult struct {
+	// Description returns the description of the check status.
+	Description string
+
 	// IsSuccess returns the status of the check.
 	IsSuccess bool
 
@@ -116,9 +119,10 @@ func (h *healthReporter) Liveliness() (*HealthStatus, error) {
 	checks = make([]HealthCheckResult, 0, len(checkResults))
 	for name, check := range checkResults {
 		checkResult := HealthCheckResult{
-			IsSuccess: check.IsHealthy(),
-			Name:      name,
-			Timestamp: check.Timestamp,
+			Description: check.String(),
+			IsSuccess:   check.IsHealthy(),
+			Name:        name,
+			Timestamp:   check.Timestamp,
 		}
 
 		checks = append(checks, checkResult)
