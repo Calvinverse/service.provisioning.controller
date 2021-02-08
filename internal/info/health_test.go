@@ -5,7 +5,6 @@ import (
 	"time"
 
 	gosundheit "github.com/AppsFlyer/go-sundheit"
-	checks "github.com/AppsFlyer/go-sundheit/checks"
 )
 
 //
@@ -31,21 +30,6 @@ func createMockHealthInstance(healthy bool) *mockHealthInstance {
 		checks:    make([]*gosundheit.Config, 0),
 		isHealthy: healthy,
 	}
-}
-
-func createMockHealthInstanceWithChecks(healthy bool, checks ...checks.Check) *mockHealthInstance {
-	result := createMockHealthInstance(healthy)
-
-	for _, v := range checks {
-		result.RegisterCheck(&gosundheit.Config{
-			Check:            v,
-			ExecutionPeriod:  10 * time.Second,
-			InitialDelay:     10 * time.Second,
-			InitiallyPassing: true,
-		})
-	}
-
-	return result
 }
 
 type mockHealthInstance struct {
@@ -109,8 +93,11 @@ func TestLivelinessWithOneCheck(t *testing.T) {
 		CheckName: "a",
 	}
 
-	mock := createMockHealthInstanceWithChecks(true, mockCheck)
+	mock := createMockHealthInstance(true)
 	setHealthInstanceForTesting(mock)
+
+	healthInstance := GetHealthCenter()
+	healthInstance.RegisterLivelinessCheck(mockCheck, 10*time.Second, 10*time.Second, true)
 
 	reporter := GetStatusReporter()
 
@@ -142,8 +129,12 @@ func TestLivelinessWithTwoChecks(t *testing.T) {
 		CheckName: "b",
 	}
 
-	mock := createMockHealthInstanceWithChecks(true, mockCheck1, mockCheck2)
+	mock := createMockHealthInstance(true)
 	setHealthInstanceForTesting(mock)
+
+	healthInstance := GetHealthCenter()
+	healthInstance.RegisterLivelinessCheck(mockCheck1, 10*time.Second, 10*time.Second, true)
+	healthInstance.RegisterLivelinessCheck(mockCheck2, 10*time.Second, 10*time.Second, true)
 
 	reporter := GetStatusReporter()
 
@@ -157,16 +148,16 @@ func TestLivelinessWithTwoChecks(t *testing.T) {
 		t.Errorf("Got %d checks, expected 2 checks", len(status.Checks))
 	}
 
-	if checks[0].Name != mockCheck1.Name() {
-		t.Errorf("Got check with name %s, expected %s", checks[0].Name, mockCheck1.Name())
+	if checks[0].Name != mockCheck1.Name() && checks[0].Name != mockCheck2.Name() {
+		t.Errorf("Got check with name %s, expected %s or %s", checks[0].Name, mockCheck1.Name(), mockCheck2.Name())
 	}
 
 	if !checks[0].IsSuccess {
 		t.Errorf("Check with name %s was not successful", checks[0].Name)
 	}
 
-	if checks[1].Name != mockCheck2.Name() {
-		t.Errorf("Got check with name %s, expected %s", checks[1].Name, mockCheck2.Name())
+	if checks[1].Name != mockCheck1.Name() && checks[1].Name != mockCheck2.Name() {
+		t.Errorf("Got check with name %s, expected %s or %s", checks[1].Name, mockCheck1.Name(), mockCheck2.Name())
 	}
 
 	if !checks[1].IsSuccess {
