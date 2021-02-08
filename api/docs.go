@@ -330,25 +330,92 @@ var doc = `{
                     }
                 }
             }
+        },
+        "/v1/self/readiness": {
+            "get": {
+                "description": "Respond to an readiness request with information about ability of the application to start serving requests.",
+                "consumes": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Respond to an readiness request",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/health.ReadinessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/self/started": {
+            "get": {
+                "description": "Respond to an started request with information indicating if the application has started successfully.",
+                "consumes": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Respond to an started request",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/health.StartedResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
         "environment.Environment": {
             "type": "object"
         },
-        "health.CheckStatus": {
-            "type": "object"
+        "health.DetailedCheckInformation": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name returns the name of the health check.",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Status returns the status of the health check, either success or failure.",
+                    "type": "string"
+                },
+                "timestamp": {
+                    "description": "Timestamp returns the time the healtcheck was executed.",
+                    "type": "string"
+                }
+            }
         },
         "health.InfoResponse": {
             "type": "object",
             "properties": {
                 "buildtime": {
+                    "description": "BuildTime stores the date and time the application was built.",
                     "type": "string"
                 },
                 "revision": {
+                    "description": "Revision stores the GIT SHA of the commit on which the application build was based.",
                     "type": "string"
                 },
                 "version": {
+                    "description": "Version stores the version number of the application.",
                     "type": "string"
                 }
             }
@@ -357,9 +424,10 @@ var doc = `{
             "type": "object",
             "properties": {
                 "checks": {
+                    "description": "Status of all the health checks",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/health.CheckStatus"
+                        "$ref": "#/definitions/health.DetailedCheckInformation"
                     }
                 },
                 "status": {
@@ -376,6 +444,22 @@ var doc = `{
             "type": "object",
             "properties": {
                 "response": {
+                    "type": "string"
+                }
+            }
+        },
+        "health.ReadinessResponse": {
+            "type": "object",
+            "properties": {
+                "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "health.StartedResponse": {
+            "type": "object",
+            "properties": {
+                "time": {
                     "type": "string"
                 }
             }
