@@ -6,7 +6,7 @@ import (
 	"github.com/calvinverse/service.provisioning.controller/internal/cmd"
 	"github.com/calvinverse/service.provisioning.controller/internal/config"
 	"github.com/calvinverse/service.provisioning.controller/internal/doc"
-	"github.com/calvinverse/service.provisioning.controller/internal/health"
+	"github.com/calvinverse/service.provisioning.controller/internal/info"
 	"github.com/calvinverse/service.provisioning.controller/internal/router"
 )
 
@@ -30,7 +30,7 @@ type resolver struct {
 
 func (r *resolver) resolveAPIRouters() []router.APIRouter {
 	docRouter := doc.NewDocumentationRouter(r.cfg)
-	healthRouter := health.NewHealthAPIRouter()
+	healthRouter := info.NewSelfAPIRouter()
 	return []router.APIRouter{
 		docRouter,
 		healthRouter,

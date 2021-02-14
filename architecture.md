@@ -8,28 +8,6 @@ There are a number of areas that decisions need to be made on for this applicati
 * Communication with other services
 * Invocation of tooling
 
-Bootstrapping will be important.
-
-* Done via a Terraform or Helm script to deploy all the required services
-* How are we going to deal with certificates and secrets etc.
-* Bootstrap should work just from a repo, i.e. all you have done is `git clone`
-  so the bootstrap script should be able to
-  * Build the application, possibly into a docker container
-  * Run the code(?)
-  * Deploy the base infrastructure -> Meta environment
-    * k8s cluster(?)
-    * Consul masters
-    * observability
-    * storage
-    * event system
-    * api front-end
-    * Service
-  * Send data describing the environment that was just created
-  * send commands to create the other environments that should be created(?)
-* What do we do if there is no k8s cluster
-  * microk8s
-  * Azure k8s
-
 ## Location
 
 * Trying to be cloud agnostic as far as possible
@@ -39,13 +17,7 @@ Bootstrapping will be important.
 
 ## Communication
 
-* Will provide a (somewhat pragmatic) REST API for obtaining information about the service,
-  e.g. health checks etc.
-* Commands to the service will be send asynchronously via an event bus.
-  * Initially we will support a single message bus, being the AMQP / RabbitMQ
-  * Might add others later on
-* Service will send notifications back to the event bus when it has done work,
-  e.g. created a new environment
+
 * Any API calls will need to be resilient
   * https://github.com/cep21/circuit
   * https://dev.to/trongdan_tran/circuit-breaker-and-retry-2klg
@@ -54,13 +26,6 @@ Bootstrapping will be important.
   * https://medium.com/@slok/goresilience-a-go-library-to-improve-applications-resiliency-14d229aee385
 * There will be no commands or API calls to get the current state. It is expected that other
   services will keep their own data store containing the state
-
-### REST API Versioning
-
-* Many different ways to do versioning. All of them have advantages / disadvantages
-  and there doesn't seem to be a consensus about the best method.
-* Based on this [post and the comments](https://www.troyhunt.com/your-api-versioning-is-wrong-which-is/)
-	the the `api/v1` approach is selected
 
 ### Service bus
 
@@ -225,8 +190,11 @@ A template contains
     * URL
     * Name
     * Command to execute
+  * Secrets to generate
+  * Certificates to generate
 
-
+Templates can have parameters which have a default value which can be overwritten when deploying the
+template.
 ### Resource group
 
 * ID
@@ -236,6 +204,13 @@ A template contains
 * Dependency graph
 * Name
 * Tags
+
+### Deployment
+
+A combination of a template (or multiple templates) and a configuration that describes what the
+values should be for the parameters of the templates
+
+
 
 ### Possible executors
 
