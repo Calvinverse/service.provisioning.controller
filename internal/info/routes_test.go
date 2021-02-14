@@ -636,7 +636,7 @@ func validateLivelinessDetailedResponse(t *testing.T, expectedNumberOfChecks int
 		}
 
 		expectedTime := time.Date(2021, time.January, i, i, i, i, 0, time.Local)
-		if parsedTime != expectedTime {
+		if !parsedTime.Equal(expectedTime) {
 			t.Errorf("Check %d had an unexpected timestamp. Got %s wanted %s", i, c.Timestamp, expectedTime.Format(time.RFC3339))
 		}
 	}
@@ -693,7 +693,7 @@ func validateStartedResponse(t *testing.T, result startedResponse) {
 	}
 
 	expectedTime := time.Date(2021, time.January, 1, 1, 1, 1, 0, time.Local)
-	if parsedTime != expectedTime {
-		t.Errorf("Check had an unexpected timestamp. Got %s wanted %s", result.Timestamp, expectedTime.Format(time.RFC3339))
+	if !parsedTime.Equal(expectedTime) {
+		t.Errorf("Check had an unexpected timestamp. Got %s wanted %s", parsedTime.String(), expectedTime.String())
 	}
 }
