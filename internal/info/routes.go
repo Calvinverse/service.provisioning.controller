@@ -132,7 +132,7 @@ func (h *selfRouter) Version() int8 {
 // @Accept xml
 // @Produce json
 // @Produce xml
-// @Success 200 {object} health.InfoResponse
+// @Success 200 {object} info.infoResponse
 // @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/info [get]
 func (h *selfRouter) info(w http.ResponseWriter, r *http.Request) {
@@ -154,7 +154,7 @@ func (h *selfRouter) info(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Produce xml
 // @Param type query string false "options are summary or detailed" Enums(summary, detailed)
-// @Success 200 {object} health.LivelinessDetailedResponse
+// @Success 200 {object} info.livelinessDetailedResponse
 // @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/liveliness [get]
 func (h *selfRouter) liveliness(w http.ResponseWriter, r *http.Request) {
@@ -242,7 +242,7 @@ func (h *selfRouter) livelinessSummaryResponse(w http.ResponseWriter, r *http.Re
 // @Accept xml
 // @Produce json
 // @Produce xml
-// @Success 200 {object} health.PingResponse
+// @Success 200 {object} info.pingResponse
 // @Failure 415 {string} string "Unsupported media type"
 // @Router /v1/self/ping [get]
 func (h *selfRouter) ping(w http.ResponseWriter, r *http.Request) {
@@ -263,7 +263,7 @@ func (h *selfRouter) ping(w http.ResponseWriter, r *http.Request) {
 // @Accept xml
 // @Produce json
 // @Produce xml
-// @Success 200 {object} health.ReadinessResponse
+// @Success 200 {object} info.readinessResponse
 // @Router /v1/self/readiness [get]
 func (h *selfRouter) readiness(w http.ResponseWriter, r *http.Request) {
 	healthStatus, err := h.healthService.Readiness()
@@ -311,7 +311,7 @@ func (h *selfRouter) readinessResponse(w http.ResponseWriter, r *http.Request, s
 // @Accept xml
 // @Produce json
 // @Produce xml
-// @Success 200 {object} health.StartedResponse
+// @Success 200 {object} info.startedResponse
 // @Router /v1/self/started [get]
 func (h *selfRouter) started(w http.ResponseWriter, r *http.Request) {
 	t := time.Now()

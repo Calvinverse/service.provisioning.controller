@@ -245,7 +245,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/health.InfoResponse"
+                            "$ref": "#/definitions/info.infoResponse"
                         }
                     },
                     "415": {
@@ -288,7 +288,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/health.LivelinessDetailedResponse"
+                            "$ref": "#/definitions/info.livelinessDetailedResponse"
                         }
                     },
                     "415": {
@@ -319,7 +319,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/health.PingResponse"
+                            "$ref": "#/definitions/info.pingResponse"
                         }
                     },
                     "415": {
@@ -350,7 +350,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/health.ReadinessResponse"
+                            "$ref": "#/definitions/info.readinessResponse"
                         }
                     }
                 }
@@ -375,7 +375,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/health.StartedResponse"
+                            "$ref": "#/definitions/info.startedResponse"
                         }
                     }
                 }
@@ -386,9 +386,13 @@ var doc = `{
         "environment.Environment": {
             "type": "object"
         },
-        "health.DetailedCheckInformation": {
+        "info.detailedCheckInformation": {
             "type": "object",
             "properties": {
+                "description": {
+                    "description": "Description returns the description of the health check status.",
+                    "type": "string"
+                },
                 "name": {
                     "description": "Name returns the name of the health check.",
                     "type": "string"
@@ -403,7 +407,7 @@ var doc = `{
                 }
             }
         },
-        "health.InfoResponse": {
+        "info.infoResponse": {
             "type": "object",
             "properties": {
                 "buildtime": {
@@ -420,14 +424,14 @@ var doc = `{
                 }
             }
         },
-        "health.LivelinessDetailedResponse": {
+        "info.livelinessDetailedResponse": {
             "type": "object",
             "properties": {
                 "checks": {
                     "description": "Status of all the health checks",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/health.DetailedCheckInformation"
+                        "$ref": "#/definitions/info.detailedCheckInformation"
                     }
                 },
                 "status": {
@@ -435,12 +439,12 @@ var doc = `{
                     "type": "string"
                 },
                 "time": {
-                    "description": "Time the liveliness response was created at",
+                    "description": "Timestamp the liveliness response was created at",
                     "type": "string"
                 }
             }
         },
-        "health.PingResponse": {
+        "info.pingResponse": {
             "type": "object",
             "properties": {
                 "response": {
@@ -448,7 +452,27 @@ var doc = `{
                 }
             }
         },
-        "health.ReadinessResponse": {
+        "info.readinessResponse": {
+            "type": "object",
+            "properties": {
+                "checks": {
+                    "description": "Status of all health checks",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/info.summaryCheckInformation"
+                    }
+                },
+                "status": {
+                    "description": "Status returns the status of the readiness check, either success or failure.",
+                    "type": "string"
+                },
+                "time": {
+                    "description": "Timestamp returns the timestamp at which the last readiness check was executed.",
+                    "type": "string"
+                }
+            }
+        },
+        "info.startedResponse": {
             "type": "object",
             "properties": {
                 "time": {
@@ -456,10 +480,15 @@ var doc = `{
                 }
             }
         },
-        "health.StartedResponse": {
+        "info.summaryCheckInformation": {
             "type": "object",
             "properties": {
-                "time": {
+                "name": {
+                    "description": "Name returns the name of the health check.",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Status returns the status of the health check, either success or failure.",
                     "type": "string"
                 }
             }

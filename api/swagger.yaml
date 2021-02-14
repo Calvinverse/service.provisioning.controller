@@ -2,8 +2,11 @@ basePath: /api
 definitions:
   environment.Environment:
     type: object
-  health.DetailedCheckInformation:
+  info.detailedCheckInformation:
     properties:
+      description:
+        description: Description returns the description of the health check status.
+        type: string
       name:
         description: Name returns the name of the health check.
         type: string
@@ -15,7 +18,7 @@ definitions:
         description: Timestamp returns the time the healtcheck was executed.
         type: string
     type: object
-  health.InfoResponse:
+  info.infoResponse:
     properties:
       buildtime:
         description: BuildTime stores the date and time the application was built.
@@ -28,33 +31,54 @@ definitions:
         description: Version stores the version number of the application.
         type: string
     type: object
-  health.LivelinessDetailedResponse:
+  info.livelinessDetailedResponse:
     properties:
       checks:
         description: Status of all the health checks
         items:
-          $ref: '#/definitions/health.DetailedCheckInformation'
+          $ref: '#/definitions/info.detailedCheckInformation'
         type: array
       status:
         description: Global status
         type: string
       time:
-        description: Time the liveliness response was created at
+        description: Timestamp the liveliness response was created at
         type: string
     type: object
-  health.PingResponse:
+  info.pingResponse:
     properties:
       response:
         type: string
     type: object
-  health.ReadinessResponse:
+  info.readinessResponse:
+    properties:
+      checks:
+        description: Status of all health checks
+        items:
+          $ref: '#/definitions/info.summaryCheckInformation'
+        type: array
+      status:
+        description: Status returns the status of the readiness check, either success
+          or failure.
+        type: string
+      time:
+        description: Timestamp returns the timestamp at which the last readiness check
+          was executed.
+        type: string
+    type: object
+  info.startedResponse:
     properties:
       time:
         type: string
     type: object
-  health.StartedResponse:
+  info.summaryCheckInformation:
     properties:
-      time:
+      name:
+        description: Name returns the name of the health check.
+        type: string
+      status:
+        description: Status returns the status of the health check, either success
+          or failure.
         type: string
     type: object
 host: localhost:8080
@@ -212,7 +236,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/health.InfoResponse'
+            $ref: '#/definitions/info.infoResponse'
         "415":
           description: Unsupported media type
           schema:
@@ -242,7 +266,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/health.LivelinessDetailedResponse'
+            $ref: '#/definitions/info.livelinessDetailedResponse'
         "415":
           description: Unsupported media type
           schema:
@@ -263,7 +287,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/health.PingResponse'
+            $ref: '#/definitions/info.pingResponse'
         "415":
           description: Unsupported media type
           schema:
@@ -285,7 +309,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/health.ReadinessResponse'
+            $ref: '#/definitions/info.readinessResponse'
       summary: Respond to an readiness request
       tags:
       - health
@@ -303,7 +327,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/health.StartedResponse'
+            $ref: '#/definitions/info.startedResponse'
       summary: Respond to an started request
       tags:
       - health
