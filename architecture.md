@@ -86,8 +86,7 @@ Potentially looking at using [arangodb]() because
 
 Also need
 
-* Some way of keeping things up to date. Ideally we would get notified when things change, but we may have to poll. Can
-  we link to Consul and keep track of the health status?
+* Some way of keeping things up to date. Ideally we would get notified when things change, but we may have to poll.
 
 
 Options
@@ -96,14 +95,6 @@ Options
 * OSS
   * ArangoDB <-- probably the most suitable because GraphQL and distributed by defaul
   * OrientDB
-
-## Service discovery
-
-* Might be tricky or not always necessary because we're using event systems
-* In general discovery is done with Consul
-  * https://alex.dzyoba.com/blog/go-consul-service/
-  * https://github.com/segmentio/consul-go
-* Want to be using a service mesh
 
 ## Calling out to services
 
@@ -159,8 +150,6 @@ Options
     * `primary` - Flag indicating if the application belongs to the primary cluster. If so then it will
       assume it is part of the active cluster. If not then it assumes it is part of the disaster recovery
       (DR) cluster. The primary cluster will send signals to the DR cluster(s)
-    * `primary-cluster-name` - The Consul name of the primary cluster. It is assumed that there exists
-      a WAN connection between the two Consul clusters.
 
 Default parameters
 

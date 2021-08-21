@@ -3,14 +3,10 @@ package config
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/viper"
-
-	// Load viper/remote so that we can get configurations from Consul
-	_ "github.com/spf13/viper/remote"
 )
 
 // Configuration defines the interface for configuration objects
@@ -73,72 +69,6 @@ func (c *concreteConfig) LoadConfiguration(cfgFile string) error {
 				err))
 		return err
 	}
-
-	// Only use consul if we have a host+port and consul key specified
-	if c.cfg.IsSet("consul.enabled") && c.cfg.GetBool("consul.enabled") {
-		if err := c.loadFromConsul(); err != nil {
-			log.Fatal(
-				fmt.Sprintf(
-					"Configuration invalid. Error was %v",
-					err))
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *concreteConfig) loadFromConsul() error {
-
-	c.cfg.SetConfigType("yaml")
-
-	consulHost := c.GetString("consul.host")
-	consulPort := c.GetInt("consul.port")
-	consulKeyPath := c.GetString("consul.keyPath")
-	log.Debug(
-		fmt.Sprintf(
-			"Reading configuration from Consul on host %s:%d via key %s.",
-			consulHost,
-			consulPort,
-			consulKeyPath))
-
-	if err := c.cfg.AddRemoteProvider("consul", fmt.Sprintf("%s:%d", consulHost, consulPort), consulKeyPath); err != nil {
-		log.Fatal(
-			fmt.Sprintf(
-				"Unable to connect to Consul at host %s:%d to read key %s. Error was %v",
-				consulHost,
-				consulPort,
-				consulKeyPath,
-				err))
-		return err
-	}
-
-	if err := c.cfg.ReadRemoteConfig(); err != nil {
-		log.Warn(
-			fmt.Sprintf(
-				"Unable to read the configuration from Consul at key %s via host %s:%d at the moment. Error was %v",
-				consulKeyPath,
-				consulHost,
-				consulPort,
-				err))
-
-		// Don't return the error here because the inability to read from consul might be because the Consul
-		// instance is currently not reachable. So we will continue to try.
-	}
-
-	go func() {
-		for {
-			time.Sleep(time.Second * 5) // delay after each request
-
-			if err := c.cfg.WatchRemoteConfig(); err != nil {
-				log.Errorf("unable to read remote config: %v", err)
-				continue
-			}
-
-			fmt.Println("rereading remote config!")
-			c.cfg.ReadRemoteConfig()
-		}
-	}()
 
 	return nil
 }
