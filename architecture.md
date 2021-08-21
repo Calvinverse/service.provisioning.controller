@@ -136,79 +136,8 @@ Options
 * Retries / backoff on all calls
 *
 
-## Elements
+## Domain models
 
-### Environment
-
-An environment consists of
-
-* ID
-* Meta
-  * Name
-  * Description
-  * Tags
-  * Date of creation
-  * Date of destruction
-  * Date of planned destruction
-* Templates -> Link to templates that create it
-* Resources -> Link to resources
-
-Other information that can be obtained for an environment
-
-* Status
-  * Deploying
-  * Deployed - Waiting / validating
-  * Deployed - OK
-  * Deployed - Fail
-  * Destroying
-  * Destroyed
-
-### Resource
-
-A resource contains
-
-* ID
-* Link to the template that created it
-* Count
-* Status
-* Links
-
-### Template
-
-A template contains
-
-* ID
-* Version
-* Name
-* Commit
-* Dependency graph
-* Resource groups
-* Resources
-* Tags
-* Actions
-  * App reference
-    * URL
-    * Name
-    * Command to execute
-  * Secrets to generate
-  * Certificates to generate
-
-Templates can have parameters which have a default value which can be overwritten when deploying the
-template.
-### Resource group
-
-* ID
-* Resource link
-  * ID
-  * Template that makes it
-* Dependency graph
-* Name
-* Tags
-
-### Deployment
-
-A combination of a template (or multiple templates) and a configuration that describes what the
-values should be for the parameters of the templates
 
 
 
@@ -232,16 +161,6 @@ values should be for the parameters of the templates
       (DR) cluster. The primary cluster will send signals to the DR cluster(s)
     * `primary-cluster-name` - The Consul name of the primary cluster. It is assumed that there exists
       a WAN connection between the two Consul clusters.
-* `bootstrap` - Starts the application in bootstrap mode
-  * Starts the application in bootstrap mode. This will create a new cluster in the selected k8s
-    instance and fully initialize it, i.e. service discovery, secrets, certificates etc. Once the
-    cluster is up and running the resource information for the cluster will be send with the
-  * Parameters
-    * `location` - Address of the k8s cluster into which the meta environment should be bootstrapped
-    * `github-organisation` - The name of the organisation or person who's github account contains the
-      repositories containing the configuration files to create the meta cluster
-    * `repository-prefix` - The prefix for the repositories containing the configuration files to
-      create the meta cluster
 
 Default parameters
 
