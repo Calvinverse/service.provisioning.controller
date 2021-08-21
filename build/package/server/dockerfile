@@ -51,7 +51,7 @@ RUN ls -la /app
 #
 
 # Should grab our base container
-FROM testcalvinverse.azurecr.io/base.container.linux:latest
+FROM alpine:latest
 
 ARG port=8090
 
@@ -64,21 +64,27 @@ RUN mkdir -p /etc/provisioning && chown -R provisioning:provisioning /etc/provis
   mkdir -p /etc/provisioning/doc && chown -R provisioning:provisioning /etc/provisioning/doc
 
 COPY --from=build-go /app/controller /usr/bin
+
+# Run the server app as a sanity check
 RUN /usr/bin/controller
 
 COPY --from=build-go /app/configs/config.yaml /etc/provisioning/conf.d
 
 COPY --from=build-go /app/api/swagger.json /etc/provisioning/doc
 
-COPY ./build/package/server/server.sh /etc/service/provisioning/run
+COPY ./build/package/server/server.sh /etc/provisioning/server.sh
 
-RUN dos2unix /etc/service/provisioning/run && \
-  chmod +x /etc/service/provisioning/run
+RUN dos2unix /etc/provisioning/server.sh && \
+  chmod +x /etc/provisioning/server.sh
 
-RUN ls -la /etc/service/provisioning
+RUN ls -la /etc/provisioning
 
 ENV PROVISION_SERVICE_PORT ${port}
 ENV PROVISION_CONFIG_PATH /etc/provisioning/conf.d/config.yaml
 ENV PROVISION_DOC_PATH /etc/provisioning/doc
+
+USER provisioning
+
+ENTRYPOINT [ "/etc/provisioning/server.sh" ]
 
 EXPOSE ${port}
