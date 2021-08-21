@@ -95,4 +95,4 @@ The `liveliness`, `readiness` and `started` API's are used for
 
 To run the container execute the following command
 
-    docker run -p 8080:8080 -p 8301:8301 --read-only -v d:\ops\local\docker\unbound_zones.conf:/etc/unbound.d/unbound_zones.conf --env-file d:/ops/local/docker/service.provisioning/env.txt -i -t service-provisioning-controller:0.2.0-health-checks.1
+    docker run -p 8090:8090 -p 8301:8301 --read-only -v d:\ops\local\docker\unbound_zones.conf:/etc/unbound.d/unbound_zones.conf --env-file d:/ops/local/docker/service.provisioning/env.txt -i -t service-provisioning-controller:0.2.0-health-checks.1

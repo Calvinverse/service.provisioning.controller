@@ -112,7 +112,7 @@ function New-LocalBuild
     Add-Content -Path $configPath -Value "  path: $docDirectory"
 
     Add-Content -Path $configPath -Value 'service:'
-    Add-Content -Path $configPath -Value '  port: 8080'
+    Add-Content -Path $configPath -Value '  port: 8090'
 
     go build -a -installsuffix cgo -v -ldflags="-X github.com/calvinverse/service.provisioning.controller/internal/info.sha1=$sha1 -X github.com/calvinverse/service.provisioning.controller/internal/info.buildTime=$date -X github.com/calvinverse/service.provisioning.controller/internal/info.version=$version" -o $outputDir/controller.exe ./cmd
 
