@@ -1,19 +1,25 @@
 package environment
 
 import (
+	"encoding/json"
 	"net/http"
+	"time"
 
+	log "github.com/sirupsen/logrus"
+
+	"github.com/calvinverse/service.provisioning.controller/internal/config"
+	"github.com/calvinverse/service.provisioning.controller/internal/db/repository"
 	"github.com/calvinverse/service.provisioning.controller/internal/router"
 	"github.com/go-chi/chi"
 )
 
 // NewEnvironmentAPIRouter returns an APIRouter instance for the environment routes.
-func NewEnvironmentAPIRouter() router.APIRouter {
-	return &environmentRouter{}
+func NewEnvironmentAPIRouter(config config.Configuration, storage *repository.Storage) router.APIRouter {
+	return &environmentRouter{
+		cfg:     config,
+		storage: storage,
+	}
 }
-
-// Environment describes a single environment
-type Environment struct{}
 
 // https://www.google.com/search?client=firefox-b-d&q=golang+chi+get+query+params
 // https://github.com/pressly/imgry/blob/master/server/server.go
@@ -21,7 +27,19 @@ type Environment struct{}
 // https://github.com/pressly/imgry/blob/master/server/handlers.go
 // https://github.com/pressly/imgry/blob/bbb40ff8100ff84b8290005ebe080b7b07939372/server/middleware.go
 
-type environmentRouter struct{}
+type environmentRouter struct {
+	cfg     config.Configuration
+	storage *repository.Storage
+}
+
+// Environment is used to store information about an environment as used by the REST API
+type Environment struct {
+}
+
+type EnvironmentRequest struct {
+	Callback    string      `json:"callback"`
+	Environment Environment `json:"environment"`
+}
 
 // CreateEnvironment godoc
 // @Summary Creates a new environment.
@@ -36,6 +54,37 @@ type environmentRouter struct{}
 // @Router /v1/environment [put]
 func (h *environmentRouter) create(w http.ResponseWriter, r *http.Request) {
 	//render.Status()
+	// Receive a json file and queue the command
+
+	currentTime := time.Now()
+	environment := &repository.Environment{
+		ID:                   "test-ID",
+		Name:                 "test-name",
+		Description:          "A test environment",
+		CreatedOn:            &currentTime,
+		DestroyedOn:          &time.Time{},
+		DestructionPlannedOn: &time.Time{},
+	}
+
+	err := environment.Store(r.Context(), h.storage)
+	if err != nil {
+		log.
+			WithError(err).
+			Error("Failed to store the environment data")
+
+		if _, ok := err.(*repository.DuplicateEnvironmentError); ok {
+			w.WriteHeader(http.StatusConflict)
+			w.Write([]byte(`{"message": "An environment with the given ID already exists."}`))
+			return
+		} else {
+
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"message": "Failed to store the environment data"}`))
+			return
+		}
+	}
+
+	json.NewEncoder(w).Encode(environment)
 }
 
 // DeleteEnvironment godoc
