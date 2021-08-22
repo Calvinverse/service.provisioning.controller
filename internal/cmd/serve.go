@@ -11,6 +11,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/calvinverse/service.provisioning.controller/internal/config"
+	"github.com/calvinverse/service.provisioning.controller/internal/db/repository"
+	"github.com/calvinverse/service.provisioning.controller/internal/doc"
+	"github.com/calvinverse/service.provisioning.controller/internal/environment"
 	info "github.com/calvinverse/service.provisioning.controller/internal/info"
 	"github.com/calvinverse/service.provisioning.controller/internal/router"
 )
@@ -63,16 +66,14 @@ type ServeCommandBuilder interface {
 // @scope.admin Grants read and write access to administrative information
 
 // NewServeCommandBuilder creates a new instance of the ServeCommandBuilder interface.
-func NewServeCommandBuilder(config config.Configuration, builder router.Builder) ServeCommandBuilder {
+func NewServeCommandBuilder(config config.Configuration) ServeCommandBuilder {
 	return &serveCommandBuilder{
-		cfg:     config,
-		builder: builder,
+		cfg: config,
 	}
 }
 
 type serveCommandBuilder struct {
-	cfg     config.Configuration
-	builder router.Builder
+	cfg config.Configuration
 }
 
 func (s *serveCommandBuilder) New() *cobra.Command {
@@ -98,8 +99,9 @@ func (s *serveCommandBuilder) configureHealthCheck() error {
 	return err
 }
 
-func (s *serveCommandBuilder) createRouter() (*chi.Mux, error) {
-	router := s.builder.New()
+func (s *serveCommandBuilder) createRouter(storage *repository.Storage) (*chi.Mux, error) {
+	builder := s.resolveRouterBuilder(storage)
+	router := builder.New()
 
 	walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
 		log.Printf("%s %s\n", method, route)
@@ -114,7 +116,13 @@ func (s *serveCommandBuilder) createRouter() (*chi.Mux, error) {
 }
 
 func (s *serveCommandBuilder) executeServer(cmd *cobra.Command, args []string) error {
-	router, err := s.createRouter()
+	storage, err := repository.Init(s.cfg)
+	if err != nil {
+		// This really should trigger a loop to try and connect.
+		log.WithError(err).Fatal("Failed to initialize the database.")
+	}
+
+	router, err := s.createRouter(storage)
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -143,4 +151,20 @@ func (s *serveCommandBuilder) getHostAddress() string {
 	port := s.cfg.GetInt("service.port")
 	hostAddress := fmt.Sprintf(":%d", port)
 	return hostAddress
+}
+
+func (s *serveCommandBuilder) resolveAPIRouters(storage *repository.Storage) []router.APIRouter {
+	docRouter := doc.NewDocumentationRouter(s.cfg)
+	healthRouter := info.NewSelfAPIRouter()
+	environmentRouter := environment.NewEnvironmentAPIRouter(s.cfg, storage)
+	return []router.APIRouter{
+		docRouter,
+		healthRouter,
+		environmentRouter,
+	}
+}
+
+func (s *serveCommandBuilder) resolveRouterBuilder(storage *repository.Storage) router.Builder {
+	apiRouters := s.resolveAPIRouters(storage)
+	return router.NewRouterBuilder(apiRouters)
 }

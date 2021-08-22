@@ -5,9 +5,6 @@ import (
 
 	"github.com/calvinverse/service.provisioning.controller/internal/cmd"
 	"github.com/calvinverse/service.provisioning.controller/internal/config"
-	"github.com/calvinverse/service.provisioning.controller/internal/doc"
-	"github.com/calvinverse/service.provisioning.controller/internal/info"
-	"github.com/calvinverse/service.provisioning.controller/internal/router"
 )
 
 // Resolver defines the interface for Inversion-of-Control objects.
@@ -28,18 +25,8 @@ type resolver struct {
 	commands []*cobra.Command
 }
 
-func (r *resolver) resolveAPIRouters() []router.APIRouter {
-	docRouter := doc.NewDocumentationRouter(r.cfg)
-	healthRouter := info.NewSelfAPIRouter()
-	return []router.APIRouter{
-		docRouter,
-		healthRouter,
-	}
-}
-
 func (r *resolver) ResolveCommands() []*cobra.Command {
-	routerBuilder := r.resolveRouterBuilder()
-	ServeCommandBuilder := cmd.NewServeCommandBuilder(r.cfg, routerBuilder)
+	ServeCommandBuilder := cmd.NewServeCommandBuilder(r.cfg)
 
 	if r.commands == nil {
 		r.commands = []*cobra.Command{
@@ -48,9 +35,4 @@ func (r *resolver) ResolveCommands() []*cobra.Command {
 	}
 
 	return r.commands
-}
-
-func (r *resolver) resolveRouterBuilder() router.Builder {
-	apiRouters := r.resolveAPIRouters()
-	return router.NewRouterBuilder(apiRouters)
 }
