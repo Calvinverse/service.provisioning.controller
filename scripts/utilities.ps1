@@ -97,7 +97,7 @@ function New-LocalBuild
 
     Copy-Item -Path (Join-Path $workspaceDirectory "configs" "*") -Destination $absoluteOutputDir -Force
 
-    & swag init --parseInternal --output ./api --generalInfo ./internal/cmd/serve.go
+    & swag init --parseInternal --output ./internal/doc --generalInfo ./internal/cmd/serve.go
 
     $docDirectory = Join-Path $absoluteOutputDir 'api'
     if (-not (Test-Path $docDirectory))
@@ -105,7 +105,8 @@ function New-LocalBuild
         New-Item -Path $docDirectory -ItemType Directory | Out-Null
     }
 
-    Copy-Item -Path (Join-Path $workspaceDirectory 'api' '*') -Destination $docDirectory -Force
+    Copy-Item -Path (Join-Path $workspaceDirectory 'internal' 'doc' '*.json') -Destination $docDirectory -Force
+    Copy-Item -Path (Join-Path $workspaceDirectory 'internal' 'doc' '*.yaml') -Destination $docDirectory -Force
 
     $configPath = Join-Path $absoluteOutputDir 'config.yaml'
     Add-Content -Path $configPath -Value 'doc:'

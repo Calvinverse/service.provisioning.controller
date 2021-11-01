@@ -1,0 +1,563 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Provides information about deployed environments and the templates used to created these environments.",
+        "title": "Provisioning.Controller server API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8090",
+    "basePath": "/api",
+    "paths": {
+        "/v1/doc": {
+            "get": {
+                "description": "Returns the OpenAPI document for the current service",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "doc"
+                ],
+                "summary": "Returns the OpenAPI document for the current service",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/environment.Environment"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/environment": {
+            "put": {
+                "description": "Creates a new environment based on the provided information.",
+                "consumes": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "Creates a new environment.",
+                "parameters": [
+                    {
+                        "description": "Environment ID",
+                        "name": "id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/environment.Environment"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/environment.Environment"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/environment/": {
+            "get": {
+                "description": "Returns a list of known environment IDs.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "Provide the list of known environment IDs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/environment.Environment"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/environment/{id}": {
+            "get": {
+                "description": "Returns information about the environment with the given id.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "Provide information about an environment.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Environment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/environment.Environment"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes the environment with the given id.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "Deletes an environment.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Environment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/environment.Environment"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/self/info": {
+            "get": {
+                "description": "Respond to an info request with information about the application.",
+                "consumes": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Respond to an info request",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/info.infoResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/self/liveliness": {
+            "get": {
+                "description": "Respond to an liveliness request with information about the status of the latest health checks.",
+                "consumes": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Respond to an liveliness request",
+                "parameters": [
+                    {
+                        "enum": [
+                            "summary",
+                            "detailed"
+                        ],
+                        "type": "string",
+                        "description": "options are summary or detailed",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/info.livelinessDetailedResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/self/ping": {
+            "get": {
+                "description": "Respond to a ping request with a pong response.",
+                "consumes": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Respond to a ping request",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/info.pingResponse"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/self/readiness": {
+            "get": {
+                "description": "Respond to an readiness request with information about ability of the application to start serving requests.",
+                "consumes": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Respond to an readiness request",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/info.readinessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/self/started": {
+            "get": {
+                "description": "Respond to an started request with information indicating if the application has started successfully.",
+                "consumes": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/xml"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Respond to an started request",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/info.startedResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "environment.Environment": {
+            "type": "object",
+            "properties": {
+                "_key": {
+                    "description": "ID provides the unique identity of the environment.",
+                    "type": "string"
+                },
+                "created_on": {
+                    "description": "CreatedOn is the date and time the environment was created. May be set to nil\nif the environment has not been created yet.",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "Description is the human readable description of the environment.",
+                    "type": "string"
+                },
+                "destroyed_on": {
+                    "description": "DestroyedON is the date and time the environment was destroyed. May be set to\nnil if the environment has not been destroyed yet.",
+                    "type": "string"
+                },
+                "destruction_planned_on": {
+                    "description": "DestructionPlannedOn is the date and time the environment is planned to be\ndestroyed. If the environment is not planned to be destroyed then it will\nbe set to nil.",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Name is the human readable name of the environment, e.g. 'production'.",
+                    "type": "string"
+                }
+            }
+        },
+        "info.detailedCheckInformation": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "description": "Description returns the description of the health check status.",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Name returns the name of the health check.",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Status returns the status of the health check, either success or failure.",
+                    "type": "string"
+                },
+                "timestamp": {
+                    "description": "Timestamp returns the time the healtcheck was executed.",
+                    "type": "string"
+                }
+            }
+        },
+        "info.infoResponse": {
+            "type": "object",
+            "properties": {
+                "buildtime": {
+                    "description": "BuildTime stores the date and time the application was built.",
+                    "type": "string"
+                },
+                "revision": {
+                    "description": "Revision stores the GIT SHA of the commit on which the application build was based.",
+                    "type": "string"
+                },
+                "version": {
+                    "description": "Version stores the version number of the application.",
+                    "type": "string"
+                }
+            }
+        },
+        "info.livelinessDetailedResponse": {
+            "type": "object",
+            "properties": {
+                "checks": {
+                    "description": "Status of all the health checks",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/info.detailedCheckInformation"
+                    }
+                },
+                "status": {
+                    "description": "Global status",
+                    "type": "string"
+                },
+                "time": {
+                    "description": "Timestamp the liveliness response was created at",
+                    "type": "string"
+                }
+            }
+        },
+        "info.pingResponse": {
+            "type": "object",
+            "properties": {
+                "response": {
+                    "type": "string"
+                }
+            }
+        },
+        "info.readinessResponse": {
+            "type": "object",
+            "properties": {
+                "checks": {
+                    "description": "Status of all health checks",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/info.summaryCheckInformation"
+                    }
+                },
+                "status": {
+                    "description": "Status returns the status of the readiness check, either success or failure.",
+                    "type": "string"
+                },
+                "time": {
+                    "description": "Timestamp returns the timestamp at which the last readiness check was executed.",
+                    "type": "string"
+                }
+            }
+        },
+        "info.startedResponse": {
+            "type": "object",
+            "properties": {
+                "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "info.summaryCheckInformation": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name returns the name of the health check.",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Status returns the status of the health check, either success or failure.",
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        },
+        "BasicAuth": {
+            "type": "basic"
+        },
+        "OAuth2AccessCode": {
+            "type": "oauth2",
+            "flow": "accessCode",
+            "authorizationUrl": "https://example.com/oauth/authorize",
+            "tokenUrl": "https://example.com/oauth/token",
+            "scopes": {
+                "admin": " Grants read and write access to administrative information"
+            }
+        },
+        "OAuth2Application": {
+            "type": "oauth2",
+            "flow": "application",
+            "tokenUrl": "https://example.com/oauth/token",
+            "scopes": {
+                "admin": " Grants read and write access to administrative information",
+                "write": " Grants write access"
+            }
+        },
+        "OAuth2Implicit": {
+            "type": "oauth2",
+            "flow": "implicit",
+            "authorizationUrl": "https://example.com/oauth/authorize",
+            "scopes": {
+                "admin": " Grants read and write access to administrative information",
+                "write": " Grants write access"
+            }
+        },
+        "OAuth2Password": {
+            "type": "oauth2",
+            "flow": "password",
+            "tokenUrl": "https://example.com/oauth/token",
+            "scopes": {
+                "admin": " Grants read and write access to administrative information",
+                "read": " Grants read access",
+                "write": " Grants write access"
+            }
+        }
+    }
+}

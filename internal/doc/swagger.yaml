@@ -1,0 +1,402 @@
+basePath: /api
+definitions:
+  environment.Environment:
+    properties:
+      _key:
+        description: ID provides the unique identity of the environment.
+        type: string
+      created_on:
+        description: |-
+          CreatedOn is the date and time the environment was created. May be set to nil
+          if the environment has not been created yet.
+        type: string
+      description:
+        description: Description is the human readable description of the environment.
+        type: string
+      destroyed_on:
+        description: |-
+          DestroyedON is the date and time the environment was destroyed. May be set to
+          nil if the environment has not been destroyed yet.
+        type: string
+      destruction_planned_on:
+        description: |-
+          DestructionPlannedOn is the date and time the environment is planned to be
+          destroyed. If the environment is not planned to be destroyed then it will
+          be set to nil.
+        type: string
+      name:
+        description: Name is the human readable name of the environment, e.g. 'production'.
+        type: string
+    type: object
+  info.detailedCheckInformation:
+    properties:
+      description:
+        description: Description returns the description of the health check status.
+        type: string
+      name:
+        description: Name returns the name of the health check.
+        type: string
+      status:
+        description: Status returns the status of the health check, either success
+          or failure.
+        type: string
+      timestamp:
+        description: Timestamp returns the time the healtcheck was executed.
+        type: string
+    type: object
+  info.infoResponse:
+    properties:
+      buildtime:
+        description: BuildTime stores the date and time the application was built.
+        type: string
+      revision:
+        description: Revision stores the GIT SHA of the commit on which the application
+          build was based.
+        type: string
+      version:
+        description: Version stores the version number of the application.
+        type: string
+    type: object
+  info.livelinessDetailedResponse:
+    properties:
+      checks:
+        description: Status of all the health checks
+        items:
+          $ref: '#/definitions/info.detailedCheckInformation'
+        type: array
+      status:
+        description: Global status
+        type: string
+      time:
+        description: Timestamp the liveliness response was created at
+        type: string
+    type: object
+  info.pingResponse:
+    properties:
+      response:
+        type: string
+    type: object
+  info.readinessResponse:
+    properties:
+      checks:
+        description: Status of all health checks
+        items:
+          $ref: '#/definitions/info.summaryCheckInformation'
+        type: array
+      status:
+        description: Status returns the status of the readiness check, either success
+          or failure.
+        type: string
+      time:
+        description: Timestamp returns the timestamp at which the last readiness check
+          was executed.
+        type: string
+    type: object
+  info.startedResponse:
+    properties:
+      time:
+        type: string
+    type: object
+  info.summaryCheckInformation:
+    properties:
+      name:
+        description: Name returns the name of the health check.
+        type: string
+      status:
+        description: Status returns the status of the health check, either success
+          or failure.
+        type: string
+    type: object
+host: localhost:8090
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Provides information about deployed environments and the templates
+    used to created these environments.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Provisioning.Controller server API
+  version: "1.0"
+paths:
+  /v1/doc:
+    get:
+      consumes:
+      - application/json
+      description: Returns the OpenAPI document for the current service
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/environment.Environment'
+      summary: Returns the OpenAPI document for the current service
+      tags:
+      - doc
+  /v1/environment:
+    put:
+      consumes:
+      - application/json
+      - text/xml
+      description: Creates a new environment based on the provided information.
+      parameters:
+      - description: Environment ID
+        in: body
+        name: id
+        required: true
+        schema:
+          $ref: '#/definitions/environment.Environment'
+      produces:
+      - application/json
+      - text/xml
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/environment.Environment'
+        "404":
+          description: Not Found
+          schema:
+            type: integer
+        "409":
+          description: Conflict
+          schema:
+            type: integer
+        "500":
+          description: Internal Server Error
+          schema:
+            type: integer
+      summary: Creates a new environment.
+      tags:
+      - environment
+  /v1/environment/:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of known environment IDs.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/environment.Environment'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            type: integer
+        "500":
+          description: Internal Server Error
+          schema:
+            type: integer
+      summary: Provide the list of known environment IDs
+      tags:
+      - environment
+  /v1/environment/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes the environment with the given id.
+      parameters:
+      - description: Environment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/environment.Environment'
+        "404":
+          description: Not Found
+          schema:
+            type: integer
+        "500":
+          description: Internal Server Error
+          schema:
+            type: integer
+      summary: Deletes an environment.
+      tags:
+      - environment
+    get:
+      consumes:
+      - application/json
+      description: Returns information about the environment with the given id.
+      parameters:
+      - description: Environment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/environment.Environment'
+        "404":
+          description: Not Found
+          schema:
+            type: integer
+        "500":
+          description: Internal Server Error
+          schema:
+            type: integer
+      summary: Provide information about an environment.
+      tags:
+      - environment
+  /v1/self/info:
+    get:
+      consumes:
+      - application/json
+      - text/xml
+      description: Respond to an info request with information about the application.
+      produces:
+      - application/json
+      - text/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/info.infoResponse'
+        "415":
+          description: Unsupported media type
+          schema:
+            type: string
+      summary: Respond to an info request
+      tags:
+      - health
+  /v1/self/liveliness:
+    get:
+      consumes:
+      - application/json
+      - text/xml
+      description: Respond to an liveliness request with information about the status
+        of the latest health checks.
+      parameters:
+      - description: options are summary or detailed
+        enum:
+        - summary
+        - detailed
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      - text/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/info.livelinessDetailedResponse'
+        "415":
+          description: Unsupported media type
+          schema:
+            type: string
+      summary: Respond to an liveliness request
+      tags:
+      - health
+  /v1/self/ping:
+    get:
+      consumes:
+      - application/json
+      - text/xml
+      description: Respond to a ping request with a pong response.
+      produces:
+      - application/json
+      - text/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/info.pingResponse'
+        "415":
+          description: Unsupported media type
+          schema:
+            type: string
+      summary: Respond to a ping request
+      tags:
+      - health
+  /v1/self/readiness:
+    get:
+      consumes:
+      - application/json
+      - text/xml
+      description: Respond to an readiness request with information about ability
+        of the application to start serving requests.
+      produces:
+      - application/json
+      - text/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/info.readinessResponse'
+      summary: Respond to an readiness request
+      tags:
+      - health
+  /v1/self/started:
+    get:
+      consumes:
+      - application/json
+      - text/xml
+      description: Respond to an started request with information indicating if the
+        application has started successfully.
+      produces:
+      - application/json
+      - text/xml
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/info.startedResponse'
+      summary: Respond to an started request
+      tags:
+      - health
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+  BasicAuth:
+    type: basic
+  OAuth2AccessCode:
+    authorizationUrl: https://example.com/oauth/authorize
+    flow: accessCode
+    scopes:
+      admin: ' Grants read and write access to administrative information'
+    tokenUrl: https://example.com/oauth/token
+    type: oauth2
+  OAuth2Application:
+    flow: application
+    scopes:
+      admin: ' Grants read and write access to administrative information'
+      write: ' Grants write access'
+    tokenUrl: https://example.com/oauth/token
+    type: oauth2
+  OAuth2Implicit:
+    authorizationUrl: https://example.com/oauth/authorize
+    flow: implicit
+    scopes:
+      admin: ' Grants read and write access to administrative information'
+      write: ' Grants write access'
+    type: oauth2
+  OAuth2Password:
+    flow: password
+    scopes:
+      admin: ' Grants read and write access to administrative information'
+      read: ' Grants read access'
+      write: ' Grants write access'
+    tokenUrl: https://example.com/oauth/token
+    type: oauth2
+swagger: "2.0"

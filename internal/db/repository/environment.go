@@ -40,15 +40,66 @@ type Environment struct {
 	DestructionPlannedOn *time.Time `json:"destruction_planned_on"`
 }
 
-func (e *Environment) Store(ctx context.Context, storage *Storage) error {
-	graph := *storage.Graph()
+// SchemaVersion defines the schema version of the Environment data
+func (e *Environment) SchemaVersion() int {
+	return 1
+}
+
+// FetchEnvironmentByID returns the information about the environment with the given ID.
+func FetchEnvironmentByID(ctx context.Context, storage *Storage, id string) (*Environment, error) {
+	graph := storage.Graph()
 
 	vertices, err := graph.VertexCollection(ctx, EnvironmentVertex)
 	if err != nil {
-		log.Error("Failed to get the environment vertex collection: %v", err)
+		log.WithError(err).Error("Failed to get the environment vertex collection")
+		return nil, err
+	}
+
+	if ok, _ := vertices.DocumentExists(ctx, id); !ok {
+		return nil, &UnknownEnvironmentError{
+			ID: id,
+		}
+	}
+
+	result := &Environment{}
+	_, err = vertices.ReadDocument(ctx, id, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// FetchEnvironments returns the information about all the environments.
+func FetchEnvironments(ctx context.Context, storage *Storage) ([]*Environment, error) {
+	graph := storage.Graph()
+
+	vertices, err := graph.VertexCollection(ctx, EnvironmentVertex)
+	if err != nil {
+		log.WithError(err).Error("Failed to get the environment vertex collection")
+		return nil, err
+	}
+
+	result := []*Environment{}
+	_, _, err = vertices.ReadDocuments(ctx, []string{"a"}, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// StoreEnvironment stores the environment data for the given environment in the database.
+func StoreEnvironment(ctx context.Context, storage *Storage, e *Environment) error {
+	graph := storage.Graph()
+
+	vertices, err := graph.VertexCollection(ctx, EnvironmentVertex)
+	if err != nil {
+		log.WithError(err).Error("Failed to get the environment vertex collection")
 		return err
 	}
 
+	e.DataVersion = e.SchemaVersion()
 	_, err = vertices.CreateDocument(ctx, *e)
 	if err != nil {
 		if driver.IsConflict(err) {
@@ -64,16 +115,11 @@ func (e *Environment) Store(ctx context.Context, storage *Storage) error {
 				Name: e.Name,
 			}
 		} else {
-			log.Error("Failed to store the new environment, %v", err)
+			log.Errorf("Failed to store the new environment, %v", err)
 		}
 
 		return err
 	}
 
 	return nil
-}
-
-// SchemaVersion defines the schema version of the Environment data
-func (e *Environment) SchemaVersion() int {
-	return 1
 }

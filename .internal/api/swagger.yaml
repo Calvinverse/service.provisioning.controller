@@ -1,6 +1,32 @@
 basePath: /api
 definitions:
   environment.Environment:
+    properties:
+      _key:
+        description: ID provides the unique identity of the environment.
+        type: string
+      created_on:
+        description: |-
+          CreatedOn is the date and time the environment was created. May be set to nil
+          if the environment has not been created yet.
+        type: string
+      description:
+        description: Description is the human readable description of the environment.
+        type: string
+      destroyed_on:
+        description: |-
+          DestroyedON is the date and time the environment was destroyed. May be set to
+          nil if the environment has not been destroyed yet.
+        type: string
+      destruction_planned_on:
+        description: |-
+          DestructionPlannedOn is the date and time the environment is planned to be
+          destroyed. If the environment is not planned to be destroyed then it will
+          be set to nil.
+        type: string
+      name:
+        description: Name is the human readable name of the environment, e.g. 'production'.
+        type: string
     type: object
   info.detailedCheckInformation:
     properties:
@@ -115,6 +141,7 @@ paths:
     put:
       consumes:
       - application/json
+      - text/xml
       description: Creates a new environment based on the provided information.
       parameters:
       - description: Environment ID
@@ -125,6 +152,7 @@ paths:
           $ref: '#/definitions/environment.Environment'
       produces:
       - application/json
+      - text/xml
       responses:
         "201":
           description: Created
@@ -132,6 +160,10 @@ paths:
             $ref: '#/definitions/environment.Environment'
         "404":
           description: Not Found
+          schema:
+            type: integer
+        "409":
+          description: Conflict
           schema:
             type: integer
         "500":
@@ -153,7 +185,7 @@ paths:
           description: OK
           schema:
             items:
-              type: string
+              $ref: '#/definitions/environment.Environment'
             type: array
         "404":
           description: Not Found

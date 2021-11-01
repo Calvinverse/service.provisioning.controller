@@ -10,6 +10,8 @@ import (
 	"github.com/calvinverse/service.provisioning.controller/internal/router"
 	"github.com/go-chi/chi"
 
+	httpSwagger "github.com/swaggo/http-swagger"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,7 +52,7 @@ func (d *docRouter) Routes(prefix string, r chi.Router) {
 		}
 
 		workDir := filepath.Dir(ex)
-		filesDir = filepath.Join(workDir, "doc")
+		filesDir = filepath.Join(workDir, "api")
 	}
 
 	log.Debug(
@@ -58,6 +60,7 @@ func (d *docRouter) Routes(prefix string, r chi.Router) {
 			"Using doc directory %s",
 			filesDir))
 
+	r.Get("/swagger", httpSwagger.WrapHandler)
 	r.Get(prefix, func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filesDir+"/swagger.json")
 	})

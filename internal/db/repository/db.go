@@ -2,12 +2,15 @@ package repository
 
 import (
 	"context"
+	"time"
 
+	"github.com/AppsFlyer/go-sundheit/checks"
 	log "github.com/sirupsen/logrus"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/arangodb/go-driver/http"
 	"github.com/calvinverse/service.provisioning.controller/internal/config"
+	"github.com/calvinverse/service.provisioning.controller/internal/info"
 )
 
 const (
@@ -38,26 +41,26 @@ const (
 	ServiceToResourceIncomingVertex = "vertex-service-to-resource-incoming"
 )
 
+//
+// STORAGE
+//
+
 type Storage struct {
-	client *driver.Client
-	db     *driver.Database
-	graph  *driver.Graph
+	cfg config.Configuration
+
+	url      string
+	user     string
+	password string // this should really be an encrypted string or something
+
+	client driver.Client
+	db     driver.Database
+	graph  driver.Graph
 }
 
-func Init(cfg config.Configuration) (*Storage, error) {
+func NewStorage(cfg config.Configuration) (*Storage, error) {
 	url := "http://localhost:8529"
 	if cfg.IsSet("db.url") {
 		url = cfg.GetString("db.url")
-	}
-
-	// Create an HTTP connection to the database
-	conn, err := http.NewConnection(http.ConnectionConfig{
-		Endpoints: []string{url},
-	})
-
-	if err != nil {
-		log.WithError(err).Error("Failed to create HTTP connection")
-		return nil, err
 	}
 
 	// Create a client
@@ -78,40 +81,94 @@ func Init(cfg config.Configuration) (*Storage, error) {
 	}
 	password := cfg.GetString("db.password")
 
-	log.WithFields(log.Fields{
-		"url":  url,
-		"user": user,
-	}).Info("Connecting to database engine")
-	c, err := driver.NewClient(driver.ClientConfig{
-		Connection:     conn,
-		Authentication: driver.BasicAuthentication(user, password),
-	})
+	storage := &Storage{
+		cfg:      cfg,
+		url:      url,
+		user:     user,
+		password: password,
+	}
+
+	err := registerHealthCheck(storage)
 	if err != nil {
-		log.WithError(err).Error("Failed to connect to the database")
+		log.WithError(err).Error("Failed to register the health check.")
 		return nil, err
+	}
+
+	// Should do this in a way that if we get disconnected we can re-connect
+	err = storage.init()
+	if err != nil {
+		return nil, err
+	}
+
+	return storage, nil
+}
+
+// Database returns the database.
+func (s *Storage) Database() driver.Database {
+	return s.db
+}
+
+// Graph returns the graph.
+func (s *Storage) Graph() driver.Graph {
+	return s.graph
+}
+
+func (s *Storage) init() error {
+	if s.client == nil {
+		conn, err := http.NewConnection(http.ConnectionConfig{
+			Endpoints: []string{s.url},
+		})
+
+		if err != nil {
+			log.WithError(err).Error("Failed to create HTTP connection")
+			return err // Should try again
+		}
+
+		log.WithFields(log.Fields{
+			"url":  s.url,
+			"user": s.user,
+		}).Info("Connecting to database engine")
+		c, err := driver.NewClient(driver.ClientConfig{
+			Connection:     conn,
+			Authentication: driver.BasicAuthentication(s.user, s.password),
+		})
+		if err != nil {
+			log.WithError(err).Error("Failed to connect to the database")
+			return err // Try again, except if it is an authentication error, then just give up
+		}
+
+		s.client = c
 	}
 
 	// Create database
 	ctx := context.Background()
-	db, err := createDatabase(ctx, c, cfg)
-	if err != nil {
-		return nil, err
+	if s.db == nil {
+		db, err := createOrLoadDatabase(ctx, s.cfg, s.client)
+		if err != nil {
+			return err
+		}
+
+		s.db = db
 	}
 
-	graph, err := createGraph(ctx, db, cfg)
-	if err != nil {
-		return nil, err
+	// Create or load the graph
+	if s.graph == nil {
+		graph, err := createOrLoadGraph(ctx, s.cfg, s.db)
+		if err != nil {
+			return err
+		}
+
+		s.graph = graph
 	}
 
-	return &Storage{
-		client: &c,
-		db:     &db,
-		graph:  &graph,
-	}, nil
-
+	return nil
 }
 
-func createDatabase(ctx context.Context, client driver.Client, cfg config.Configuration) (driver.Database, error) {
+//
+// DB PRIVATE FUNCTIONS
+//
+
+func createOrLoadDatabase(ctx context.Context, cfg config.Configuration, client driver.Client) (driver.Database, error) {
 	databaseName := ProvisioningDb
 	if cfg.IsSet("db.name") {
 		databaseName = cfg.GetString("db.name")
@@ -177,7 +234,7 @@ func createEdgeDefinition(name string, outgoing []string, incoming []string) dri
 	return edgeDefinition
 }
 
-func createGraph(ctx context.Context, db driver.Database, cfg config.Configuration) (driver.Graph, error) {
+func createOrLoadGraph(ctx context.Context, cfg config.Configuration, db driver.Database) (driver.Graph, error) {
 	graphName := ProvisioningGraph
 	if cfg.IsSet("db.graph") {
 		graphName = cfg.GetString("db.graph")
@@ -238,11 +295,78 @@ func createGraph(ctx context.Context, db driver.Database, cfg config.Configurati
 
 		return graph, nil
 	} else {
-		return db.Graph(ctx, graphName)
+		graph, err := db.Graph(ctx, graphName)
+		if err != nil {
+			log.
+				WithError(err).
+				WithFields(log.Fields{
+					"database": db.Name(),
+					"graph":    graphName,
+				}).
+				Error("Failed to load the existing graph from the database.")
+			return nil, err
+		}
+
+		return graph, nil
 	}
 }
 
-// Graph returns the graph.
-func (s *Storage) Graph() *driver.Graph {
-	return s.graph
+func registerHealthCheck(s *Storage) error {
+	check := DbLivelinessCheck(s)
+
+	center := info.GetHealthCenter()
+	err := center.RegisterLivelinessCheck(
+		check,
+		30*time.Second,
+		5*time.Second,
+		false,
+	)
+
+	return err
+}
+
+//
+// DB HEALTH CHECK
+//
+
+// DbLivelinessCheck returns a liveliness check for the database connection.
+func DbLivelinessCheck(s *Storage) checks.Check {
+	t := time.NewTicker(5 * time.Second)
+	check := &dbLivelinessCheck{
+		storage: s,
+	}
+	check.configureTicker(t)
+
+	return check
+}
+
+type dbLivelinessCheck struct {
+	details   string
+	lastError error
+
+	storage *Storage
+
+	ticker *time.Ticker
+}
+
+func (s *dbLivelinessCheck) Execute() (details interface{}, err error) {
+	return s.details, s.lastError
+}
+
+func (s *dbLivelinessCheck) Name() string {
+	return "db-liveliness"
+}
+
+func (s *dbLivelinessCheck) configureTicker(ticker *time.Ticker) {
+	s.ticker = ticker
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				// Check that the database is connected
+				s.details = "database connected"
+				s.lastError = nil
+			}
+		}
+	}()
 }

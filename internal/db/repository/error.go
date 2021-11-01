@@ -20,3 +20,11 @@ type DuplicateEnvironmentError struct {
 func (e *DuplicateEnvironmentError) Error() string {
 	return fmt.Sprintf("An environment with the ID '%s' was already defined.", e.ID)
 }
+
+type UnknownEnvironmentError struct {
+	ID string
+}
+
+func (e *UnknownEnvironmentError) Error() string {
+	return fmt.Sprintf("An environment with the ID '%s' was not found.", e.ID)
+}

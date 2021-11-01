@@ -116,7 +116,7 @@ func (s *serveCommandBuilder) createRouter(storage *repository.Storage) (*chi.Mu
 }
 
 func (s *serveCommandBuilder) executeServer(cmd *cobra.Command, args []string) error {
-	storage, err := repository.Init(s.cfg)
+	storage, err := repository.NewStorage(s.cfg)
 	if err != nil {
 		// This really should trigger a loop to try and connect.
 		log.WithError(err).Fatal("Failed to initialize the database.")
